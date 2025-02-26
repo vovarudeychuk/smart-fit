@@ -1,1 +1,121 @@
 /* You can add global styles to this file, and also import other style files */
+
+html, body { 
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body { 
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background-color: #f5f5f5;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+// Fix for default background/text colors
+.mat-app-background {
+  background-color: #f5f5f5;
+}
+
+// Force text to be visible against backgrounds
+.mat-typography, .mat-typography h1, .mat-typography h2, .mat-typography h3 {
+  color: rgba(0, 0, 0, 0.87);
+}
+
+// Fix for some Angular Material components
+.mdc-button {
+  font-family: Roboto, "Helvetica Neue", sans-serif !important;
+  letter-spacing: normal !important;
+}
+
+// Remove excess padding from mat-card-content
+.mat-mdc-card-content {
+  padding: 0 16px 16px !important;
+}
+
+// Add proper spacing to mat-card-header
+.mat-mdc-card-header {
+  padding: 16px 16px 0 !important;
+}
+
+// Fix spacing in mat list items
+.mat-mdc-list-item-unscoped-content {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+// Ensure proper contrast for text elements
+.mat-mdc-card, .mat-mdc-card-title, .mat-mdc-card-subtitle, .mat-mdc-card-content {
+  color: rgba(0, 0, 0, 0.87) !important;
+  background-color: white !important;
+}
+
+// Force light theme text colors
+h1, h2, h3, h4, h5, h6, p, span, div {
+  color: rgba(0, 0, 0, 0.87);
+}
+
+// Fix for Material Dialog background and text colors
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: white !important;
+  --mdc-dialog-with-divider-divider-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  background-color: white !important;
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+// Fix for dialog buttons
+.mat-mdc-dialog-actions .mat-mdc-button-base {
+  color: #673ab7 !important; 
+}
+
+.mat-mdc-dialog-actions .mat-primary {
+  background-color: #673ab7 !important;
+  color: white !important;
+}
+
+// Fix for dialog input fields
+.mat-mdc-dialog-content .mat-mdc-form-field-input-control {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+.mat-mdc-dialog-content .mat-mdc-form-field-label {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+// Fix for Material Autocomplete background and text colors
+.mat-mdc-autocomplete-panel {
+  background-color: white !important;
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+// Fix for autocomplete options
+.mat-mdc-option {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+.mat-mdc-option:hover, .mat-mdc-option.mat-mdc-option-active {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+.mat-mdc-option.mdc-list-item--selected {
+  background-color: rgba(103, 58, 183, 0.12) !important;
+}
+
+// Fix for text inside autocomplete options
+.mat-mdc-option .mdc-list-item__primary-text {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+// Ensure proper color for food name and details in autocomplete
+.food-option .food-name {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+.food-option .food-details {
+  color: rgba(0, 0, 0, 0.6) !important;
+}

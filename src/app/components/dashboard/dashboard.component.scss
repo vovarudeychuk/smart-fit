@@ -1,0 +1,71 @@
+.dashboard-container {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 0 16px;
+}
+
+mat-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  margin-bottom: 16px;
+  background-color: white !important;
+}
+
+mat-card-header {
+  margin-bottom: 16px;
+}
+
+mat-card-title, mat-card-subtitle, mat-card-content {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+mat-card-title {
+  font-size: 24px !important;
+  font-weight: 500 !important;
+  margin-bottom: 8px !important;
+}
+
+mat-card-subtitle {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.progress-section {
+  margin: 24px 0;
+}
+
+.progress-item {
+  margin-bottom: 16px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.progress-label span {
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.divider {
+  margin: 24px 0;
+}
+
+h3 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  color: rgba(0, 0, 0, 0.87) !important;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+::ng-deep .mat-mdc-progress-bar {
+  height: 8px !important;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+::ng-deep .mat-mdc-progress-bar .mdc-linear-progress__bar-inner {
+  border-radius: 4px;
+} 
