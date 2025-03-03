@@ -1,11 +1,13 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
+import { FoodItem } from '../../models/food-item.model';
 
 @Component({
   selector: 'app-circle-day',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, DragDropModule],
   template: `
     <div 
       class="day-circle" 
@@ -13,6 +15,14 @@ import { MatIconModule } from '@angular/material/icon';
       [class.today]="isToday"
       [class.past]="isPast"
       [class.future]="isFuture"
+      [class.drop-target]="isDragOver"
+      cdkDropList
+      id="day-{{ dayIndex }}"
+      [cdkDropListData]="{dayIndex: dayIndex, date: date}"
+      [cdkDropListConnectedTo]="['food-list']"
+      (cdkDropListDropped)="onFoodDrop.emit($event)"
+      (cdkDropListEntered)="isDragOver = true"
+      (cdkDropListExited)="isDragOver = false"
       (click)="daySelected.emit()">
       <div class="day-label">{{ getDayLabel() }}</div>
       
@@ -41,6 +51,12 @@ import { MatIconModule } from '@angular/material/icon';
       
       &:hover {
         background-color: rgba(103, 58, 183, 0.12);
+      }
+      
+      &.drop-target {
+        background-color: rgba(103, 58, 183, 0.3);
+        transform: scale(1.1);
+        box-shadow: 0 0 8px rgba(103, 58, 183, 0.5);
       }
       
       /* Past day styling - always applied when .past class is present */
@@ -147,7 +163,11 @@ export class CircleDayComponent {
   @Input() totalCalories: number = 0;
   @Input() calorieGoal: number = 0;
   @Input() hasFoodItems: boolean = false;
+  @Input() dayIndex: number = 0;
   @Output() daySelected = new EventEmitter<void>();
+  @Output() onFoodDrop = new EventEmitter<any>();
+  
+  isDragOver = false;
   
   getDayLabel(): string {
     return new Date(this.date).toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);

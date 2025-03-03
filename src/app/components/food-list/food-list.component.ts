@@ -8,34 +8,44 @@ import { NutritionService } from '../../services/nutrition.service';
 import { FoodQuantityDialogComponent } from '../food-quantity-dialog/food-quantity-dialog.component';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { FoodItem } from '../../models/food-item.model';
+import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'app-food-list',
   standalone: true,
-  imports: [CommonModule, MatListModule, MatIconModule, MatButtonModule],
+  imports: [CommonModule, MatListModule, MatIconModule, MatButtonModule, DragDropModule],
   template: `
   <div class="food-list mat-elevation-z1">
     @if (currentDay().foodItems.length > 0) {
-      <mat-list>
-        @for (food of currentDay().foodItems; track food.id) {
-          <mat-list-item>
-            <div class="food-item">
-              <span class="food-name">{{ food.name }}</span>
-              <span class="food-details">
-                {{ food.calories }} kcal | 
-                P: {{ food.protein }}g | 
-                C: {{ food.carbs }}g | 
-                F: {{ food.fat }}g | 
-                ({{ food.servingSize }})
-              </span>
-            </div>
-            <div class="food-actions">
-              <button mat-icon-button color="primary" (click)="editFood(food)">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button color="warn" (click)="deleteFood(food)">
-                <mat-icon>delete</mat-icon>
-              </button>
+      <mat-list cdkDropList 
+        id="food-list" 
+        [cdkDropListData]="currentDay().foodItems" 
+        [cdkDropListConnectedTo]="getDropListIds()"
+        (cdkDropListDropped)="drop($event)">
+        @for (food of currentDay().foodItems; track food.id + '-' + $index) {
+          <mat-list-item cdkDrag [cdkDragData]="food">
+            <div class="food-item-container">
+              <div class="drag-handle" cdkDragHandle>
+                <mat-icon>drag_indicator</mat-icon>
+              </div>
+              <div class="food-item">
+                <span class="food-name">{{ food.name }}</span>
+                <span class="food-details">
+                  {{ food.calories }} kcal | 
+                  P: {{ food.protein }}g | 
+                  C: {{ food.carbs }}g | 
+                  F: {{ food.fat }}g | 
+                  ({{ food.servingSize }})
+                </span>
+              </div>
+              <div class="food-actions">
+                <button mat-icon-button color="primary" (click)="editFood(food)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="deleteFood(food)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
             </div>
           </mat-list-item>
         }
@@ -52,6 +62,10 @@ export class FoodListComponent {
   private dialog = inject(MatDialog);
   
   currentDay = computed(() => this.nutritionService.getCurrentDay());
+  
+  getDropListIds(): string[] {
+    return Array.from({ length: 7 }, (_, i) => `day-${i}`);
+  }
   
   editFood(food: FoodItem): void {
     // Extract quantity and serving size from the food item
@@ -108,5 +122,13 @@ export class FoodListComponent {
         this.nutritionService.deleteFoodItem(food.id.toString());
       }
     });
+  }
+
+  drop(event: CdkDragDrop<FoodItem[]>): void {
+    if (event.previousContainer === event.container) {
+      // Handle reordering within food list
+      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+      this.nutritionService.reorderFoodItems(event.container.data);
+    }
   }
 } 

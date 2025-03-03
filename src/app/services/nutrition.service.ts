@@ -34,7 +34,10 @@ export class NutritionService {
   private currentDayIndex = signal<number>(0);
   private weeklyNutrition = signal<DailyNutrition[]>(this.generateMockWeekData());
 
-  constructor() {}
+  constructor() {  
+    
+    this.navigateToDay(this.currentDate.getDay())
+}
 
   private generateWeekDates(): Date[] {
     const dates: Date[] = [];
@@ -221,5 +224,20 @@ export class NutritionService {
 
   getAllDays(): DailyNutrition[] {
     return this.weeklyNutrition();
+  }
+
+  // Add this method to your NutritionService class
+  reorderFoodItems(reorderedItems: FoodItem[]): void {
+    const updatedNutrition = [...this.weeklyNutrition()];
+    const dayIndex = this.currentDayIndex();
+    
+    // Update the food items array with the new order
+    updatedNutrition[dayIndex] = {
+      ...updatedNutrition[dayIndex],
+      foodItems: reorderedItems
+    };
+    
+    // Update the state
+    this.weeklyNutrition.set(updatedNutrition);
   }
 } 
