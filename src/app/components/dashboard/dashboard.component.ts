@@ -1,7 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -9,20 +8,21 @@ import { NutritionService } from '../../services/nutrition.service';
 import { DayNavigatorComponent } from '../day-navigator/day-navigator.component';
 import { FoodListComponent } from '../food-list/food-list.component';
 import { FoodSearchComponent } from '../food-search/food-search.component';
+import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/nutrition-progress-bar.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
     CommonModule, 
-    MatCardModule, 
-    MatProgressBarModule, 
+    MatCardModule,
     MatIconModule, 
     MatButtonModule,
     MatDividerModule,
     DayNavigatorComponent,
     FoodListComponent,
-    FoodSearchComponent
+    FoodSearchComponent,
+    NutritionProgressBarComponent
   ],
   template: `
     <div class="dashboard-container">
@@ -38,52 +38,38 @@ import { FoodSearchComponent } from '../food-search/food-search.component';
           <div class="progress-section">
             <h3>Daily Progress</h3>
             
-            <div class="progress-item">
-              <div class="progress-label">
-                <span>Calories</span>
-                <span>{{ currentDay().totalCalories }} / {{ calorieGoal }} kcal</span>
-              </div>
-              <mat-progress-bar 
-                mode="determinate" 
-                [value]="caloriePercentage()" 
-                [color]="caloriePercentage() > 100 ? 'warn' : 'primary'">
-              </mat-progress-bar>
-            </div>
-            
-            <div class="progress-item">
-              <div class="progress-label">
-                <span>Protein</span>
-                <span>{{ currentDay().totalProtein | number:'1.0-1' }} / {{ proteinGoal }}g</span>
-              </div>
-              <mat-progress-bar 
-                mode="determinate" 
-                [value]="proteinPercentage()" 
-                [color]="proteinPercentage() > 100 ? 'warn' : 'accent'">
-              </mat-progress-bar>
-            </div>
-            
-            <div class="progress-item">
-              <div class="progress-label">
-                <span>Carbs</span>
-                <span>{{ currentDay().totalCarbs | number:'1.0-1' }} / {{ carbsGoal }}g</span>
-              </div>
-              <mat-progress-bar 
-                mode="determinate" 
-                [value]="carbsPercentage()"
-                [color]="carbsPercentage() > 100 ? 'warn' : 'primary'">
-              </mat-progress-bar>
-            </div>
-            
-            <div class="progress-item">
-              <div class="progress-label">
-                <span>Fat</span>
-                <span>{{ currentDay().totalFat | number:'1.0-1' }} / {{ fatGoal }}g</span>
-              </div>
-              <mat-progress-bar 
-                mode="determinate" 
-                [value]="fatPercentage()"
-                [color]="fatPercentage() > 100 ? 'warn' : 'accent'">
-              </mat-progress-bar>
+            <div class="progress-grid">
+              <app-nutrition-progress-bar
+                label="Calories"
+                [currentValue]="currentDay().totalCalories"
+                [goalValue]="calorieGoal"
+                unit="kcal"
+                >
+              </app-nutrition-progress-bar>
+              
+              <app-nutrition-progress-bar
+                label="Protein"
+                [currentValue]="currentDay().totalProtein"
+                [goalValue]="proteinGoal"
+                unit="g"
+                color="primary">
+              </app-nutrition-progress-bar>
+              
+              <app-nutrition-progress-bar
+                label="Carbs"
+                [currentValue]="currentDay().totalCarbs"
+                [goalValue]="carbsGoal"
+                unit="g"
+                color="primary">
+              </app-nutrition-progress-bar>
+              
+              <app-nutrition-progress-bar
+                label="Fat"
+                [currentValue]="currentDay().totalFat"
+                [goalValue]="fatGoal"
+                unit="g"
+                color="primary">
+              </app-nutrition-progress-bar>
             </div>
           </div>
           
@@ -113,21 +99,4 @@ export class DashboardComponent {
   proteinGoal = this.nutritionService.getProteinGoal();
   carbsGoal = this.nutritionService.getCarbsGoal();
   fatGoal = this.nutritionService.getFatGoal();
-  
-  // Calculate percentages for progress bars
-  caloriePercentage = computed(() => 
-    (this.currentDay().totalCalories / this.calorieGoal) * 100
-  );
-  
-  proteinPercentage = computed(() => 
-    (this.currentDay().totalProtein / this.proteinGoal) * 100
-  );
-  
-  carbsPercentage = computed(() => 
-    (this.currentDay().totalCarbs / this.carbsGoal) * 100
-  );
-  
-  fatPercentage = computed(() => 
-    (this.currentDay().totalFat / this.fatGoal) * 100
-  );
 } 

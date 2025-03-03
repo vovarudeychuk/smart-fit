@@ -33,19 +33,14 @@ mat-card-subtitle {
   margin: 24px 0;
 }
 
-.progress-item {
-  margin-bottom: 16px;
-}
-
-.progress-label {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
-  font-size: 14px;
-}
-
-.progress-label span {
-  color: rgba(0, 0, 0, 0.87);
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .divider {
