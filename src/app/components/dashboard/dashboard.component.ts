@@ -44,6 +44,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
                 [currentValue]="currentDay().totalCalories"
                 [goalValue]="calorieGoal"
                 unit="kcal"
+                color="ccal"
                 >
               </app-nutrition-progress-bar>
               
@@ -52,7 +53,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
                 [currentValue]="currentDay().totalProtein"
                 [goalValue]="proteinGoal"
                 unit="g"
-                color="primary">
+                color="protein">
               </app-nutrition-progress-bar>
               
               <app-nutrition-progress-bar
@@ -60,7 +61,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
                 [currentValue]="currentDay().totalCarbs"
                 [goalValue]="carbsGoal"
                 unit="g"
-                color="primary">
+                color="carbs">
               </app-nutrition-progress-bar>
               
               <app-nutrition-progress-bar
@@ -68,7 +69,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
                 [currentValue]="currentDay().totalFat"
                 [goalValue]="fatGoal"
                 unit="g"
-                color="primary">
+                color="fat">
               </app-nutrition-progress-bar>
             </div>
           </div>

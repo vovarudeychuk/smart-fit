@@ -73,23 +73,39 @@ import { CommonModule } from '@angular/common';
       height: 100%;
       
       &.primary {
-        background-color: #673ab7;
+        background-color: #673ab7; /* Purple */
       }
       
       &.accent {
-        background-color: #ff4081;
+        background-color: #ff4081; /* Pink */
       }
       
       &.warn {
-        background-color: #f44336;
+        background-color: #f44336; /* Red */
+      }
+
+      &.ccal {
+        background-color: #3F51B5;
+      }
+
+      &.protein {
+        background-color: #4caf50;
       }
       
+      &.carbs {
+        background-color: #2196f3;
+      } 
+
+      &.fat {
+        background-color:  #ff9800;
+      }
+
       &:first-child {
         border-top-left-radius: 4px;
         border-bottom-left-radius: 4px;
       }
     }
-    
+  
     .excess-segment {
       height: 100%;
       background-color: #f44336;
@@ -115,7 +131,7 @@ export class NutritionProgressBarComponent {
   @Input() currentValue: number = 0;
   @Input() goalValue: number = 100;
   @Input() unit: string = '';
-  @Input() color: 'primary' | 'accent' | 'warn' = 'primary';
+  @Input() color: 'primary' | 'accent' | 'warn' | 'ccal' | 'carbs' | 'protein' | 'fat'  = 'primary';
   
   // Calculate percentages based on the total bar width (100%)
   get normalPercentage(): number {
