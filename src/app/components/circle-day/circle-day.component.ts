@@ -20,7 +20,7 @@ import { FoodItem } from '../../models/food-item.model';
       id="day-{{ dayIndex }}"
       [cdkDropListData]="{dayIndex: dayIndex, date: date}"
       [cdkDropListConnectedTo]="['food-list']"
-      (cdkDropListDropped)="onFoodDrop.emit($event)"
+      (cdkDropListDropped)="onDropped($event)"
       (cdkDropListEntered)="isDragOver = true"
       (cdkDropListExited)="isDragOver = false"
       (click)="daySelected.emit()">
@@ -54,9 +54,9 @@ import { FoodItem } from '../../models/food-item.model';
       }
       
       &.drop-target {
-        background-color: rgba(103, 58, 183, 0.3);
-        transform: scale(1.1);
-        box-shadow: 0 0 8px rgba(103, 58, 183, 0.5);
+        /* Modified to use only a border indicator instead of background/shadow */
+        border: 2px dashed #673ab7;
+        transform: scale(2.1);
       }
       
       /* Past day styling - always applied when .past class is present */
@@ -168,6 +168,12 @@ export class CircleDayComponent {
   @Output() onFoodDrop = new EventEmitter<any>();
   
   isDragOver = false;
+  
+  // Added a method to emit the event and reset isDragOver
+  onDropped(event: any): void {
+    this.onFoodDrop.emit(event);
+    this.isDragOver = false; // Make sure we reset the drop-target style
+  }
   
   getDayLabel(): string {
     return new Date(this.date).toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
