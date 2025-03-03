@@ -3,12 +3,23 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { NutritionService } from '../../services/nutrition.service';
+import { CircleDayComponent } from '../circle-day/circle-day.component';
 
 @Component({
   selector: 'app-day-navigator',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule, CircleDayComponent],
   template: `
+    <div class="week-circles">
+      @for (day of getAllDays(); track $index) {
+        <app-circle-day 
+          [date]="day.date" 
+          [isActive]="getCurrentDayIndex() === $index"
+          (daySelected)="navigateToDay($index)">
+        </app-circle-day>
+      }
+    </div>
+    
     <div class="day-navigator">
       <button mat-mini-fab color="primary" 
               (click)="navigateToPreviousDay()" 
@@ -38,6 +49,14 @@ export class DayNavigatorComponent {
   
   getCurrentDayIndex(): number {
     return this.nutritionService.getCurrentDayIndex();
+  }
+  
+  getAllDays() {
+    return this.nutritionService.getAllDays();
+  }
+  
+  navigateToDay(dayIndex: number) {
+    this.nutritionService.navigateToDay(dayIndex);
   }
   
   navigateToNextDay() {

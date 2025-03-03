@@ -212,4 +212,14 @@ export class NutritionService {
     day.totalCarbs = day.foodItems.reduce((sum, item) => sum + item.carbs, 0);
     day.totalFat = day.foodItems.reduce((sum, item) => sum + item.fat, 0);
   }
+
+  navigateToDay(dayIndex: number): void {
+    if (dayIndex >= 0 && dayIndex < this.weeklyNutrition().length) {
+      this.currentDayIndex.set(dayIndex);
+    }
+  }
+
+  getAllDays(): DailyNutrition[] {
+    return this.weeklyNutrition();
+  }
 } 
