@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,6 +15,12 @@ import { CircleDayComponent } from '../circle-day/circle-day.component';
         <app-circle-day 
           [date]="day.date" 
           [isActive]="getCurrentDayIndex() === $index"
+          [isToday]="isToday(day.date)"
+          [isPast]="isPastDay(day.date)"
+          [isFuture]="isFutureDay(day.date)"
+          [totalCalories]="day.totalCalories"
+          [calorieGoal]="calorieGoal"
+          [hasFoodItems]="day.foodItems.length > 0"
           (daySelected)="navigateToDay($index)">
         </app-circle-day>
       }
@@ -41,11 +47,33 @@ import { CircleDayComponent } from '../circle-day/circle-day.component';
   `,
   styleUrl: './day-navigator.component.scss'
 })
-export class DayNavigatorComponent {
+export class DayNavigatorComponent implements OnInit {
   private nutritionService = inject(NutritionService);
   
   // Use computed to create a reactive property that reflects the current day data
   currentDay = computed(() => this.nutritionService.getCurrentDay());
+  calorieGoal = this.nutritionService.getCalorieGoal();
+  
+  // For debugging
+  ngOnInit() {
+    // Set current day index to today
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    this.nutritionService.navigateToDay(dayOfWeek);
+    
+    // Existing debug code
+    const days = this.getAllDays();
+    days.forEach((day, index) => {
+      console.log(`Day ${index}:`, {
+        date: day.date,
+        isToday: this.isToday(day.date),
+        isPast: this.isPastDay(day.date),
+        isFuture: this.isFutureDay(day.date),
+        totalCalories: day.totalCalories,
+        foodItems: day.foodItems.length
+      });
+    });
+  }
   
   getCurrentDayIndex(): number {
     return this.nutritionService.getCurrentDayIndex();
@@ -76,5 +104,35 @@ export class DayNavigatorComponent {
       month: 'short', 
       day: 'numeric'
     });
+  }
+  
+  isToday(date: Date): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to beginning of day
+    
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0); // Reset time to beginning of day
+    
+    return today.getTime() === compareDate.getTime();
+  }
+  
+  isPastDay(date: Date): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to beginning of day
+    
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0); // Reset time to beginning of day
+    
+    return compareDate.getTime() < today.getTime();
+  }
+  
+  isFutureDay(date: Date): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to beginning of day
+    
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0); // Reset time to beginning of day
+    
+    return compareDate.getTime() > today.getTime();
   }
 } 
