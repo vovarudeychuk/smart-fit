@@ -42,7 +42,7 @@ import { FoodItem } from '../../models/food-item.model';
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       position: relative;
       
       /* Base styling */
@@ -51,12 +51,12 @@ import { FoodItem } from '../../models/food-item.model';
       
       &:hover {
         background-color: rgba(103, 58, 183, 0.12);
+        transform: scale(1.05);
       }
       
       &.drop-target {
-        /* Modified to use only a border indicator instead of background/shadow */
         border: 2px dashed #673ab7;
-        transform: scale(2.1);
+        animation: pulse 1.5s infinite;
       }
       
       /* Past day styling - always applied when .past class is present */
@@ -88,11 +88,18 @@ import { FoodItem } from '../../models/food-item.model';
       &.active {
         background-color: #673ab7;
         color: white;
+        transform: scale(1.1);
+        box-shadow: 0 3px 5px -1px rgba(0,0,0,.2), 
+                    0 6px 10px 0 rgba(0,0,0,.14), 
+                    0 1px 18px 0 rgba(0,0,0,.12);
         
         /* Special case for active today */
         &.today {
           border-color: white;
-          box-shadow: 0 0 0 2px #ff4081;
+          box-shadow: 0 0 0 2px #ff4081, 
+                      0 3px 5px -1px rgba(0,0,0,.2), 
+                      0 6px 10px 0 rgba(0,0,0,.14), 
+                      0 1px 18px 0 rgba(0,0,0,.12);
         }
         
         /* Special case for active past day */
@@ -129,6 +136,8 @@ import { FoodItem } from '../../models/food-item.model';
       justify-content: center;
       background-color: white;
       border: 2px solid;
+      transition: all 0.3s ease;
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       
       mat-icon {
         font-size: 14px;
@@ -150,6 +159,33 @@ import { FoodItem } from '../../models/food-item.model';
       &.excess {
         border-color: #f44336; /* Red for excess */
         color: #f44336;
+      }
+    }
+    
+    @keyframes pulse {
+      0% {
+        transform: scale(1.5);
+        box-shadow: 0 0 0 0 rgba(103, 58, 183, 0.5);
+      }
+      70% {
+        transform: scale(2.05);
+        box-shadow: 0 0 0 10px rgba(103, 58, 183, 0);
+      }
+      100% {
+        transform: scale(1.5);
+        box-shadow: 0 0 0 0 rgba(103, 58, 183, 0);
+      }
+    }
+    
+    @keyframes popIn {
+      0% {
+        transform: scale(0);
+      }
+      70% {
+        transform: scale(1.2);
+      }
+      100% {
+        transform: scale(1);
       }
     }
   `
