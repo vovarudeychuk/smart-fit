@@ -14,6 +14,25 @@ import { FoodQuantityDialogComponent } from '../food-quantity-dialog/food-quanti
   standalone: true,
   imports: [CommonModule, MatButtonModule, MatIconModule, CircleDayComponent, DragDropModule],
   template: `
+  <div class="day-navigator">
+      <button mat-mini-fab 
+              (click)="navigateToPreviousDay()" 
+              [disabled]="getCurrentDayIndex() === 0">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      
+      <div class="date-display">
+        <div class="day-name">{{ formatDayName(currentDay().date) }}</div>
+        <div class="date">{{ formatDate(currentDay().date) }}</div>
+      </div>
+      
+      <button mat-mini-fab 
+              (click)="navigateToNextDay()" 
+              [disabled]="getCurrentDayIndex() === 6">
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+    </div>
+
     <div class="week-circles">
       @for (day of getAllDays(); track $index) {
         <app-circle-day 
@@ -32,24 +51,6 @@ import { FoodQuantityDialogComponent } from '../food-quantity-dialog/food-quanti
       }
     </div>
     
-    <div class="day-navigator">
-      <button mat-mini-fab color="primary" 
-              (click)="navigateToPreviousDay()" 
-              [disabled]="getCurrentDayIndex() === 0">
-        <mat-icon>arrow_back</mat-icon>
-      </button>
-      
-      <div class="date-display">
-        <div class="day-name">{{ formatDayName(currentDay().date) }}</div>
-        <div class="date">{{ formatDate(currentDay().date) }}</div>
-      </div>
-      
-      <button mat-mini-fab color="primary"
-              (click)="navigateToNextDay()" 
-              [disabled]="getCurrentDayIndex() === 6">
-        <mat-icon>arrow_forward</mat-icon>
-      </button>
-    </div>
   `,
   styleUrl: './day-navigator.component.scss'
 })

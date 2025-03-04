@@ -27,13 +27,10 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
   template: `
     <div class="dashboard-container">
       <mat-card>
-        <mat-card-header>
-          <mat-card-title>SmartFit Nutrition Tracker</mat-card-title>
-          <mat-card-subtitle>Keep track of your daily nutrition goals</mat-card-subtitle>
-        </mat-card-header>
-        
         <mat-card-content>
           <app-day-navigator></app-day-navigator>
+
+          <mat-divider class="divider"></mat-divider>
           
           <div class="progress-section">
             <h3>Daily Progress</h3>
