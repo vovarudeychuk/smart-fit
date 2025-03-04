@@ -154,9 +154,9 @@ export class FoodListComponent {
     const category = this.getFoodCategory(food);
     
     switch(category) {
-      case 'protein': return 'fitness_center';
+      case 'protein': return 'egg_alt';
       case 'carbs': return 'bakery_dining';
-      case 'fat': return 'egg_alt';
+      case 'fat': return 'local_pizza';
       default: return 'restaurant';
     }
   }
