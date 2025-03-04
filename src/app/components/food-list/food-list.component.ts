@@ -28,13 +28,18 @@ import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from 
               <div class="drag-handle" cdkDragHandle>
                 <mat-icon>drag_indicator</mat-icon>
               </div>
+              
+              <div class="food-icon" [ngClass]="getFoodCategory(food)">
+                <mat-icon>{{getFoodIcon(food)}}</mat-icon>
+              </div>
+              
               <div class="food-item">
                 <span class="food-name">{{ food.name }}</span>
                 <span class="food-details">
-                  {{ food.calories }} kcal | 
-                  P: {{ food.protein }}g | 
-                  C: {{ food.carbs }}g | 
-                  F: {{ food.fat }}g | 
+                  <span [style.color]="'#9c27b0'">{{ food.calories }} kcal</span> | 
+                  <span [style.color]="'#4caf50'">P: {{ food.protein }}g</span> | 
+                  <span [style.color]="'#2196f3'">C: {{ food.carbs }}g</span> | 
+                  <span [style.color]="'#ff9800'">F: {{ food.fat }}g</span> | 
                   ({{ food.servingSize }})
                 </span>
               </div>
@@ -129,6 +134,30 @@ export class FoodListComponent {
       // Handle reordering within food list
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       this.nutritionService.reorderFoodItems(event.container.data);
+    }
+  }
+
+  // Add these new methods for food categorization
+  getFoodCategory(food: FoodItem): string {
+    const proteinRatio = food.protein * 4 / food.calories;
+    const carbsRatio = food.carbs * 4 / food.calories;
+    const fatRatio = food.fat * 9 / food.calories;
+    
+    // Determine the dominant macronutrient
+    if (proteinRatio > 0.4) return 'protein';
+    if (carbsRatio > 0.4) return 'carbs';
+    if (fatRatio > 0.4) return 'fat';
+    return 'mixed';
+  }
+  
+  getFoodIcon(food: FoodItem): string {
+    const category = this.getFoodCategory(food);
+    
+    switch(category) {
+      case 'protein': return 'fitness_center';
+      case 'carbs': return 'bakery_dining';
+      case 'fat': return 'egg_alt';
+      default: return 'restaurant';
     }
   }
 } 
