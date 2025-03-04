@@ -1,14 +1,18 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-nutrition-progress-bar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatIconModule],
   template: `
     <div class="progress-item">
       <div class="progress-label">
-        <span>{{ label }}</span>
+        <span class="label-with-icon">
+          <mat-icon [ngClass]="color" class="nutrient-icon">{{getNutrientIcon()}}</mat-icon>
+          {{ label }}
+        </span>
         <span>{{ currentValue | number:'1.0-1' }} / {{ goalValue }} {{ unit }}</span>
       </div>
       
@@ -18,7 +22,7 @@ import { CommonModule } from '@angular/common';
           <div 
             *ngIf="normalPercentage > 0" 
             [style.width.%]="normalPercentage"
-            class="normal-segment" 
+            class="normal-segment animate-width" 
             [ngClass]="color">
           </div>
           
@@ -26,7 +30,7 @@ import { CommonModule } from '@angular/common';
           <div 
             *ngIf="excessPercentage > 0" 
             [style.width.%]="excessPercentage"
-            class="excess-segment">
+            class="excess-segment animate-width">
           </div>
           
           <!-- Empty space -->
@@ -41,7 +45,7 @@ import { CommonModule } from '@angular/common';
   `,
   styles: `
     .progress-item {
-      margin-bottom: 0;
+      margin-bottom: 8px;
     }
     
     .progress-label {
@@ -49,6 +53,41 @@ import { CommonModule } from '@angular/common';
       justify-content: space-between;
       margin-bottom: 4px;
       font-size: 14px;
+      align-items: center;
+    }
+    
+    .label-with-icon {
+      display: flex;
+      align-items: center;
+    }
+    
+    .nutrient-icon {
+      font-size: 18px;
+      height: 18px;
+      width: 18px;
+      margin-right: 4px;
+      border-radius: 50%;
+      padding: 2px;
+      
+      &.ccal {
+        background-color: rgba(156, 39, 176, 0.1);
+        color: #9c27b0;
+      }
+      
+      &.protein {
+        background-color: rgba(76, 175, 80, 0.1);
+        color: #4caf50;
+      }
+      
+      &.carbs {
+        background-color: rgba(33, 150, 243, 0.1);
+        color: #2196f3;
+      }
+      
+      &.fat {
+        background-color: rgba(255, 152, 0, 0.1);
+        color: #ff9800;
+      }
     }
     
     .progress-label span {
@@ -69,6 +108,10 @@ import { CommonModule } from '@angular/common';
       height: 100%;
     }
     
+    .animate-width {
+      transition: width 0.6s ease-out;
+    }
+    
     .normal-segment {
       height: 100%;
       
@@ -83,11 +126,11 @@ import { CommonModule } from '@angular/common';
       &.warn {
         background-color: #f44336; /* Red */
       }
-
+      
       &.ccal {
-        background-color: #3F51B5;
+        background-color: #9c27b0;
       }
-
+      
       &.protein {
         background-color: #4caf50;
       }
@@ -95,11 +138,11 @@ import { CommonModule } from '@angular/common';
       &.carbs {
         background-color: #2196f3;
       } 
-
+      
       &.fat {
-        background-color:  #ff9800;
+        background-color: #ff9800;
       }
-
+      
       &:first-child {
         border-top-left-radius: 4px;
         border-bottom-left-radius: 4px;
@@ -160,6 +203,16 @@ export class NutritionProgressBarComponent {
     } else {
       // Empty part is what's left
       return ((this.goalValue - this.currentValue) / this.goalValue) * 100;
+    }
+  }
+  
+  getNutrientIcon(): string {
+    switch(this.color) {
+      case 'ccal': return 'local_fire_department';
+      case 'protein': return 'fitness_center';
+      case 'carbs': return 'bakery_dining';
+      case 'fat': return 'egg_alt';
+      default: return 'pie_chart';
     }
   }
 }
