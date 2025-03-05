@@ -7,7 +7,7 @@ import { NutritionService } from '../../services/nutrition.service';
 import { CircleDayComponent } from '../circle-day/circle-day.component';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { FoodItem } from '../../models/food-item.model';
-import { FoodQuantityDialogComponent } from '../food-quantity-dialog/food-quantity-dialog.component';
+import { FoodQuantityDialogComponent } from '../shared/dialogs';
 
 @Component({
   selector: 'app-day-navigator',

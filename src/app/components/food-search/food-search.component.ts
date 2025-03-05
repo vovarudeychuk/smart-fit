@@ -10,7 +10,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { NutritionService } from '../../services/nutrition.service';
 import { FoodItem } from '../../models/food-item.model';
-import { FoodQuantityDialogComponent } from '../food-quantity-dialog/food-quantity-dialog.component';
+import { FoodQuantityDialogComponent } from '../shared/dialogs';
 import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators';
 import { Observable, of, startWith } from 'rxjs';
 
