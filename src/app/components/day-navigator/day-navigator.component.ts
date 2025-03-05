@@ -132,8 +132,8 @@ export class DayNavigatorComponent implements OnInit {
   handleFoodDrop(event: CdkDragDrop<any>, dayIndex: number): void {
     console.log('Food drop event:', event);
     
-    // Check if we have data from the dragged item
-    if (event.item && event.item.data) {
+    // Check if we have data from the dragged item and it's a valid FoodItem
+    if (event.item?.data && this.isValidFoodItem(event.item.data)) {
       const foodItem = event.item.data as FoodItem;
       console.log('Food dropped on day', dayIndex, foodItem);
       
@@ -144,10 +144,12 @@ export class DayNavigatorComponent implements OnInit {
       let quantity = 1;
       let servingSize = 100;
       
-      const servingSizeMatch = foodItem.servingSize.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+)g$/);
-      if (servingSizeMatch) {
-        quantity = parseFloat(servingSizeMatch[1]);
-        servingSize = parseInt(servingSizeMatch[2], 10);
+      if (foodItem.servingSize) {
+        const servingSizeMatch = foodItem.servingSize.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+)g$/);
+        if (servingSizeMatch) {
+          quantity = parseFloat(servingSizeMatch[1]);
+          servingSize = parseInt(servingSizeMatch[2], 10);
+        }
       }
       
       // Create a base food item with standardized values
@@ -179,7 +181,18 @@ export class DayNavigatorComponent implements OnInit {
         }
       });
     } else {
-      console.error('No data found in the dragged item', event);
+      console.error('Invalid or missing food item data in the dragged item', event);
     }
+  }
+  
+  // Helper method to validate if the dragged data is a valid FoodItem
+  private isValidFoodItem(data: any): boolean {
+    return data &&
+      typeof data === 'object' &&
+      'name' in data &&
+      'calories' in data && typeof data.calories === 'number' &&
+      'protein' in data && typeof data.protein === 'number' &&
+      'carbs' in data && typeof data.carbs === 'number' &&
+      'fat' in data && typeof data.fat === 'number';
   }
 } 
