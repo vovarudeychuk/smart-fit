@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -8,6 +8,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatRippleModule } from '@angular/material/core';
+import { MatChipsModule } from '@angular/material/chips';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { Observable, of, startWith } from 'rxjs';
 import { NutritionService } from '../../../../services/nutrition.service';
@@ -28,7 +30,9 @@ import { signal } from '@angular/core';
     MatListModule,
     MatIconModule,
     MatAutocompleteModule,
-    MatDialogModule
+    MatDialogModule,
+    MatRippleModule,
+    MatChipsModule
   ],
   template: `
     <div class="food-search-dialog">
@@ -40,7 +44,7 @@ import { signal } from '@angular/core';
                 type="text"
                 placeholder="Example: chicken, rice, etc."
                 [formControl]="searchControl"
-                [matAutocomplete]="auto"
+        
                 #searchInput>
           <button mat-icon-button matSuffix *ngIf="searchControl.value" (click)="clearSearch()">
             <mat-icon>close</mat-icon>
@@ -61,25 +65,73 @@ import { signal } from '@angular/core';
         
         @if (searchResults().length > 0) {
           <div class="search-results">
-            <mat-list>
-              @for (food of searchResults(); track food.id) {
-                <mat-list-item (click)="addFood(food)">
-                  <div class="food-item">
+            @for (food of searchResults(); track food.id) {
+              <div 
+                class="food-result-item" 
+                matRipple 
+                (click)="addFood(food)"
+              >
+                <div class="food-item-content">
+                  <div class="food-icon" [ngClass]="getFoodCategory(food)">
+                    <mat-icon>{{getFoodIcon(food)}}</mat-icon>
+                  </div>
+                  <div class="food-details-container">
                     <span class="food-name">{{ food.name }}</span>
-                    <span class="food-details">
-                      {{ food.calories }} kcal | 
-                      P: {{ food.protein }}g | 
-                      C: {{ food.carbs }}g | 
-                      F: {{ food.fat }}g | 
-                      ({{ food.servingSize }})
-                    </span>
+                    <div class="food-macros">
+                      <span class="calories">{{ food.calories }} kcal</span>
+                      <span class="divider">·</span>
+                      <span class="macros">
+                        <span class="protein">P: {{ food.protein }}g</span>
+                        <span class="carbs">C: {{ food.carbs }}g</span>
+                        <span class="fat">F: {{ food.fat }}g</span>
+                      </span>
+                    </div>
+                    <div class="food-serving">
+                      <mat-chip-option selected disableRipple>{{ food.servingSize }}</mat-chip-option>
+                    </div>
                   </div>
                   <button mat-icon-button color="primary">
                     <mat-icon>add</mat-icon>
                   </button>
-                </mat-list-item>
-              }
-            </mat-list>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (searchControl.value && searchControl.value.length >= 2) {
+          <div class="no-results">
+            <mat-icon>search_off</mat-icon>
+            <p>No results found for "{{ searchControl.value }}"</p>
+            <small>Try different keywords or check spelling</small>
+          </div>
+        } @else if (!searchControl.value) {
+          <div class="quick-categories">
+            <h3>Popular Categories</h3>
+            <div class="category-grid">
+              <div class="category-item" (click)="quickSearch('protein')">
+                <div class="category-icon protein">
+                  <mat-icon>fitness_center</mat-icon>
+                </div>
+                <div class="category-name">Protein</div>
+              </div>
+              <div class="category-item" (click)="quickSearch('carbs')">
+                <div class="category-icon carbs">
+                  <mat-icon>bakery_dining</mat-icon>
+                </div>
+                <div class="category-name">Carbs</div>
+              </div>
+              <div class="category-item" (click)="quickSearch('fat')">
+                <div class="category-icon fat">
+                  <mat-icon>egg_alt</mat-icon>
+                </div>
+                <div class="category-name">Fats</div>
+              </div>
+              <div class="category-item" (click)="quickSearch('fruit')">
+                <div class="category-icon fruit">
+                  <mat-icon>nutrition</mat-icon>
+                </div>
+                <div class="category-name">Fruits</div>
+              </div>
+            </div>
           </div>
         }
       </mat-dialog-content>
@@ -180,38 +232,235 @@ import { signal } from '@angular/core';
     }
     
     .search-results {
-      max-height: 300px;
+      max-height: 400px;
       overflow-y: auto;
       border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: 8px;
-      margin-top: 8px;
+      border-radius: 12px;
+      margin-top: 16px;
       background-color: white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
     
-    ::ng-deep .mat-mdc-list-item {
+    .food-result-item {
+      padding: 12px 16px;
       cursor: pointer;
       transition: background-color 0.2s ease;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+      
+      &:last-child {
+        border-bottom: none;
+      }
       
       &:hover {
-        background-color: rgba(0, 0, 0, 0.04);
+        background-color: rgba(0, 0, 0, 0.02);
       }
     }
     
-    .food-item {
+    .food-item-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .food-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      
+      &.protein {
+        background-color: rgba(76, 175, 80, 0.15);
+        color: #4caf50;
+      }
+      
+      &.carbs {
+        background-color: rgba(33, 150, 243, 0.15);
+        color: #2196f3;
+      }
+      
+      &.fat {
+        background-color: rgba(255, 152, 0, 0.15);
+        color: #ff9800;
+      }
+      
+      &.fruit {
+        background-color: rgba(156, 39, 176, 0.15);
+        color: #9c27b0;
+      }
+      
+      &.mixed {
+        background-color: rgba(103, 58, 183, 0.15);
+        color: #673ab7;
+      }
+    }
+    
+    .food-details-container {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .food-macros {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
+      
+      .calories {
+        color: #9c27b0;
+        font-weight: 500;
+      }
+      
+      .divider {
+        margin: 0 4px;
+      }
+      
+      .protein {
+        color: #4caf50;
+        margin-right: 8px;
+      }
+      
+      .carbs {
+        color: #2196f3;
+        margin-right: 8px;
+      }
+      
+      .fat {
+        color: #ff9800;
+      }
+    }
+    
+    .food-serving {
+      margin-top: 8px;
+      
+      ::ng-deep .mdc-evolution-chip {
+        height: 24px !important;
+        font-size: 12px !important;
+        background-color: rgba(103, 58, 183, 0.08) !important;
+      }
+      
+      ::ng-deep .mat-mdc-chip-selected {
+        background-color: rgba(103, 58, 183, 0.12) !important;
+        color: #673ab7 !important;
+      }
+    }
+    
+    .quick-categories {
+      margin-top: 20px;
+      
+      h3 {
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 16px;
+        color: rgba(0, 0, 0, 0.87);
+      }
+      
+      .category-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 16px;
+      }
+      
+      .category-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        padding: 16px 8px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.04);
+          transform: translateY(-2px);
+        }
+        
+        .category-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          margin-bottom: 8px;
+          
+          &.protein {
+            background-color: rgba(76, 175, 80, 0.15);
+            color: #4caf50;
+          }
+          
+          &.carbs {
+            background-color: rgba(33, 150, 243, 0.15);
+            color: #2196f3;
+          }
+          
+          &.fat {
+            background-color: rgba(255, 152, 0, 0.15);
+            color: #ff9800;
+          }
+          
+          &.fruit {
+            background-color: rgba(156, 39, 176, 0.15);
+            color: #9c27b0;
+          }
+        }
+        
+        .category-name {
+          font-size: 14px;
+          font-weight: 500;
+        }
+      }
+    }
+    
+    .no-results {
       display: flex;
       flex-direction: column;
-      width: 100%;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+      text-align: center;
+      color: rgba(0, 0, 0, 0.6);
+      
+      mat-icon {
+        font-size: 48px;
+        height: 48px;
+        width: 48px;
+        margin-bottom: 16px;
+        color: rgba(0, 0, 0, 0.2);
+      }
+      
+      p {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+      
+      small {
+        font-size: 14px;
+      }
     }
   `
 })
-export class FoodSearchDialogComponent {
+export class FoodSearchDialogComponent implements AfterViewInit {
   private nutritionService = inject(NutritionService);
   private dialogRef = inject(MatDialogRef<FoodSearchDialogComponent>);
+  
+  @ViewChild('searchInput') searchInput!: ElementRef;
   
   searchControl = new FormControl('');
   filteredFoods: Observable<FoodItem[]>;
   searchResults = signal<FoodItem[]>([]);
+  
+  // Popular food categories for quick selection
+  foodCategories = [
+    { name: 'Protein', icon: 'fitness_center', class: 'protein', query: 'protein' },
+    { name: 'Carbs', icon: 'bakery_dining', class: 'carbs', query: 'carbs' },
+    { name: 'Fats', icon: 'egg_alt', class: 'fat', query: 'fat' },
+    { name: 'Fruits', icon: 'nutrition', class: 'fruit', query: 'fruit' }
+  ];
   
   constructor() {
     // Setup the autocomplete with debounce
@@ -221,19 +470,25 @@ export class FoodSearchDialogComponent {
       distinctUntilChanged(),
       filter(value => typeof value === 'string'),
       switchMap((value: string) => {
-        return value && value.length >= 2 
-          ? of(this.nutritionService.searchFoods(value))
-          : of([]);
+        if (value && value.length >= 2) {
+          const results = this.nutritionService.searchFoods(value);
+          this.searchResults.set(results);
+          return of(results.slice(0, 5)); // Show only top 5 in autocomplete
+        } else {
+          this.searchResults.set([]);
+          return of([]);
+        }
       })
     );
-    
-    // Auto-focus the search input when dialog opens
+  }
+  
+  ngAfterViewInit() {
+    // Auto-focus the search input after view is initialized
     setTimeout(() => {
-      const searchInput = document.querySelector('.food-search-dialog input') as HTMLElement;
-      if (searchInput) {
-        searchInput.focus();
+      if (this.searchInput) {
+        this.searchInput.nativeElement.focus();
       }
-    }, 0);
+    }, 300);
   }
   
   clearSearch() {
@@ -242,12 +497,41 @@ export class FoodSearchDialogComponent {
   }
   
   openFoodDialog(food: FoodItem) {
-    // Close this dialog
+    // Close this dialog and tell parent to open quantity dialog
     this.dialogRef.close({ action: 'openQuantityDialog', food });
   }
   
   addFood(food: FoodItem) {
-    this.nutritionService.addFoodItem({...food});
-    this.dialogRef.close();
+    this.openFoodDialog(food);
+  }
+  
+  quickSearch(category: string) {
+    this.searchControl.setValue(category);
+  }
+  
+  // Helper methods for food categorization
+  getFoodCategory(food: FoodItem): string {
+    if (!food || food.calories === 0) return 'mixed';
+    
+    const proteinRatio = food.protein * 4 / food.calories;
+    const carbsRatio = food.carbs * 4 / food.calories;
+    const fatRatio = food.fat * 9 / food.calories;
+    
+    // Determine the dominant macronutrient
+    if (proteinRatio > 0.4) return 'protein';
+    if (carbsRatio > 0.4) return 'carbs';
+    if (fatRatio > 0.4) return 'fat';
+    return 'mixed';
+  }
+  
+  getFoodIcon(food: FoodItem): string {
+    const category = this.getFoodCategory(food);
+    
+    switch(category) {
+      case 'protein': return 'fitness_center';
+      case 'carbs': return 'bakery_dining';
+      case 'fat': return 'egg_alt';
+      default: return 'restaurant';
+    }
   }
 } 
