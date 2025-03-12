@@ -10,7 +10,8 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatRippleModule } from '@angular/material/core';
 import { MatChipsModule } from '@angular/material/chips';
-import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { debounceTime, distinctUntilChanged, filter, switchMap, catchError } from 'rxjs/operators';
 import { Observable, of, startWith } from 'rxjs';
 import { NutritionService } from '../../../../services/nutrition.service';
 import { FoodItem } from '../../../../models/food-item.model';
@@ -32,7 +33,8 @@ import { signal } from '@angular/core';
     MatAutocompleteModule,
     MatDialogModule,
     MatRippleModule,
-    MatChipsModule
+    MatChipsModule,
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="food-search-dialog">
@@ -44,7 +46,6 @@ import { signal } from '@angular/core';
                 type="text"
                 placeholder="Example: chicken, rice, etc."
                 [formControl]="searchControl"
-        
                 #searchInput>
           <button mat-icon-button matSuffix *ngIf="searchControl.value" (click)="clearSearch()">
             <mat-icon>close</mat-icon>
@@ -63,7 +64,12 @@ import { signal } from '@angular/core';
           </mat-autocomplete>
         </mat-form-field>
         
-        @if (searchResults().length > 0) {
+        @if (isLoading()) {
+          <div class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Searching for foods...</p>
+          </div>
+        } @else if (searchResults().length > 0) {
           <div class="search-results">
             @for (food of searchResults(); track food.id) {
               <div 
@@ -97,7 +103,7 @@ import { signal } from '@angular/core';
               </div>
             }
           </div>
-        } @else if (searchControl.value && searchControl.value.length >= 2) {
+        } @else if (searchControl.value && searchControl.value.length >= 2 && !isLoading()) {
           <div class="no-results">
             <mat-icon>search_off</mat-icon>
             <p>No results found for "{{ searchControl.value }}"</p>
@@ -442,6 +448,20 @@ import { signal } from '@angular/core';
         font-size: 14px;
       }
     }
+    
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 0;
+      color: rgba(0, 0, 0, 0.6);
+      
+      p {
+        margin-top: 16px;
+        font-size: 16px;
+      }
+    }
   `
 })
 export class FoodSearchDialogComponent implements AfterViewInit {
@@ -451,8 +471,9 @@ export class FoodSearchDialogComponent implements AfterViewInit {
   @ViewChild('searchInput') searchInput!: ElementRef;
   
   searchControl = new FormControl('');
-  filteredFoods: Observable<FoodItem[]>;
+  filteredFoods: Observable<FoodItem[]> = of([]);
   searchResults = signal<FoodItem[]>([]);
+  isLoading = signal<boolean>(false);
   
   // Popular food categories for quick selection
   foodCategories = [
@@ -463,23 +484,30 @@ export class FoodSearchDialogComponent implements AfterViewInit {
   ];
   
   constructor() {
-    // Setup the autocomplete with debounce
-    this.filteredFoods = this.searchControl.valueChanges.pipe(
+    // Setup the search with debounce
+    this.searchControl.valueChanges.pipe(
       startWith(''),
       debounceTime(300),
       distinctUntilChanged(),
       filter(value => typeof value === 'string'),
       switchMap((value: string) => {
         if (value && value.length >= 2) {
-          const results = this.nutritionService.searchFoods(value);
-          this.searchResults.set(results);
-          return of(results.slice(0, 5)); // Show only top 5 in autocomplete
+          this.isLoading.set(true);
+          return this.nutritionService.searchFoodsAsync(value).pipe(
+            catchError(error => {
+              console.error('Error searching foods:', error);
+              return of([]);
+            })
+          );
         } else {
           this.searchResults.set([]);
           return of([]);
         }
       })
-    );
+    ).subscribe(foods => {
+      this.searchResults.set(foods);
+      this.isLoading.set(false);
+    });
   }
   
   ngAfterViewInit() {

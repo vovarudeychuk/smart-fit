@@ -9,23 +9,27 @@ import { DayNavigatorComponent } from '../day-navigator/day-navigator.component'
 import { FoodListComponent } from '../food-list/food-list.component';
 import { FoodSearchComponent } from '../food-search/food-search.component';
 import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/nutrition-progress-bar.component';
+import { ApiStatusComponent } from '../shared/status-indicator';
+
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     MatCardModule,
-    MatIconModule, 
+    MatIconModule,
     MatButtonModule,
     MatDividerModule,
     DayNavigatorComponent,
     FoodListComponent,
     FoodSearchComponent,
-    NutritionProgressBarComponent
-  ],
+    NutritionProgressBarComponent,
+    ApiStatusComponent
+],
   template: `
     <div class="dashboard-container">
+    <app-api-status></app-api-status>
       <mat-card>
         <mat-card-content>
           <app-day-navigator></app-day-navigator>
