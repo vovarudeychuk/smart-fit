@@ -77,8 +77,6 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
           <app-food-list></app-food-list>
           
           <mat-divider class="divider"></mat-divider>
-          
-          <h3>Add Food</h3>
           <app-food-search></app-food-search>
         </mat-card-content>
       </mat-card>
