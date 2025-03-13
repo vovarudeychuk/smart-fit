@@ -4,7 +4,7 @@ import { DailyNutrition } from '../models/daily-nutrition.model';
 import { ApiService } from './api.service';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { catchError, map, tap, finalize } from 'rxjs/operators';
-import { addWeeks, subWeeks, startOfWeek, endOfWeek, format, isSameWeek, addDays } from 'date-fns';
+import { addWeeks, subWeeks, startOfWeek, endOfWeek, format, isSameWeek, addDays, getDay } from 'date-fns';
 
 @Injectable({
   providedIn: 'root'
@@ -28,8 +28,24 @@ export class NutritionService {
   private currentDate = new Date();
   private weekDates = this.generateWeekDates();
 
-  // Create signals for reactive state
-  private currentDayIndex = signal<number>(0);
+  // Get today's day of the week (0-6, where 0 is Sunday)
+  private today = new Date();
+  
+  // More accurate today index calculation
+  private getTodayIndex(): number {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    
+    // Adjust based on your week start day
+    // If your week starts on Monday:
+    return dayOfWeek === 0 ? 6 : dayOfWeek;
+
+    // OR if your week starts on Sunday:
+    // return dayOfWeek;
+  }
+  
+  // Set the initial day index to today's day of the week
+  private currentDayIndex = signal<number>(this.getTodayIndex());
   private weeklyNutrition = signal<DailyNutrition[]>([]);
   private isLoadingWeeklyData = signal<boolean>(false);
   
@@ -92,11 +108,29 @@ export class NutritionService {
   });
 
   constructor() {  
+    // Debug today's index calculation
+    const todayIndex = this.getTodayIndex();
+    const today = new Date();
+    console.log('Today:', today.toDateString());
+    console.log('Day of week (0=Sunday):', today.getDay());
+    console.log('Calculated index for today:', todayIndex);
+    
+    // Check what dates are in your week
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Assuming Monday is start
+    console.log('Week starts on:', weekStart.toDateString());
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(weekStart, i);
+      console.log(`Day ${i}:`, date.toDateString());
+    }
+    
     // Load weekly nutrition data from API first
     this.loadWeeklyNutrition();
     
-    // After data is loaded, navigate to today
-    this.navigateToDay(this.currentDate.getDay())
+    // After data is loaded, navigate to today using the correct index
+    setTimeout(() => {
+      // Allow time for API to return data
+      this.navigateToDay(todayIndex);
+    }, 200);
     
     // Load initial goals from API
     this.loadNutritionGoals();
@@ -490,11 +524,23 @@ export class NutritionService {
     const weekStartDateStr = weekStartDate.toISOString();
     
     this.apiService.getWeeklyNutrition(weekStartDateStr).pipe(
-      tap(data => {
-        console.log('Weekly nutrition loaded from API:', data);
-        this.weeklyNutrition.set(data);
-        // Cache the data
-        this.nutritionDataByWeek.set(weekKey, data);
+      tap(response => {
+        console.log('Weekly nutrition loaded from API:', response);
+        
+        if (response.weekData) {
+          this.weeklyNutrition.set(response.weekData);
+          
+          // Use the backend day index directly without adjustment
+          if (typeof response.currentDayIndex === 'number') {
+            console.log('Setting day index from server:', response.currentDayIndex);
+            this.currentDayIndex.set(response.currentDayIndex);
+          }
+        } else {
+          this.weeklyNutrition.set(response);
+        }
+        
+        // Store the updated data for this week
+        this.saveCurrentWeekData();
       }),
       catchError(error => {
         console.error('Error loading weekly nutrition data:', error);
