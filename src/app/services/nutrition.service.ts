@@ -4,6 +4,7 @@ import { DailyNutrition } from '../models/daily-nutrition.model';
 import { ApiService } from './api.service';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { catchError, map, tap, finalize } from 'rxjs/operators';
+import { addWeeks, subWeeks, startOfWeek, endOfWeek, format, isSameWeek, addDays } from 'date-fns';
 
 @Injectable({
   providedIn: 'root'
@@ -29,8 +30,11 @@ export class NutritionService {
 
   // Create signals for reactive state
   private currentDayIndex = signal<number>(0);
-  private weeklyNutrition = signal<DailyNutrition[]>(this.createEmptyWeekData());
+  private weeklyNutrition = signal<DailyNutrition[]>([]);
   private isLoadingWeeklyData = signal<boolean>(false);
+  
+  // Store nutrition data for multiple weeks
+  private nutritionDataByWeek = new Map<string, DailyNutrition[]>();
   
   // Expose loading state as readonly
   isLoadingWeek = this.isLoadingWeeklyData.asReadonly();
@@ -70,6 +74,22 @@ export class NutritionService {
 
   // Add the missing foodCache property
   private foodCache = new Map<string, FoodItem[]>();
+
+  // Add this property to track current week date
+  private currentWeekDate = signal<Date>(new Date());
+
+  // Expose as readonly
+  selectedWeekDate = this.currentWeekDate.asReadonly();
+
+  // Computed signals for week range (for display purposes)
+  weekStartDate = computed(() => startOfWeek(this.currentWeekDate()));
+  weekEndDate = computed(() => endOfWeek(this.currentWeekDate()));
+  weekDateRange = computed(() => {
+    return {
+      start: format(this.weekStartDate(), 'MMM d, yyyy'),
+      end: format(this.weekEndDate(), 'MMM d, yyyy')
+    };
+  });
 
   constructor() {  
     // Load weekly nutrition data from API first
@@ -200,6 +220,9 @@ export class NutritionService {
     };
     
     this.weeklyNutrition.set(updatedNutrition);
+    
+    // Store the updated data for this week
+    this.saveCurrentWeekData();
     
     // Send to the server
     this.apiService.addFoodToDay(dayIndex, foodItem).pipe(
@@ -452,18 +475,34 @@ export class NutritionService {
   private loadWeeklyNutrition(): void {
     this.isLoadingWeeklyData.set(true);
     
-    this.apiService.getWeeklyNutrition().pipe(
-      tap(weekData => {
-        // Update the signal with data from API
-        this.weeklyNutrition.set(weekData);
-        console.log('Weekly nutrition loaded from API:', weekData);
+    const weekKey = this.getWeekKey(this.currentWeekDate());
+    
+    // Check if we already have data for this week in our cache
+    if (this.nutritionDataByWeek.has(weekKey)) {
+      console.log('Loading week data from local cache');
+      this.weeklyNutrition.set(this.nutritionDataByWeek.get(weekKey)!);
+      this.isLoadingWeeklyData.set(false);
+      return;
+    }
+    
+    // Format the date as ISO string and pass to API
+    const weekStartDate = startOfWeek(this.currentWeekDate());
+    const weekStartDateStr = weekStartDate.toISOString();
+    
+    this.apiService.getWeeklyNutrition(weekStartDateStr).pipe(
+      tap(data => {
+        console.log('Weekly nutrition loaded from API:', data);
+        this.weeklyNutrition.set(data);
+        // Cache the data
+        this.nutritionDataByWeek.set(weekKey, data);
       }),
       catchError(error => {
-        console.error('Error loading weekly nutrition from API:', error);
-        // Fall back to locally generated mock data
-        const mockData = this.generateMockWeekData();
-        this.weeklyNutrition.set(mockData);
-        console.log('Using local mock data as fallback');
+        console.error('Error loading weekly nutrition data:', error);
+        // Fall back to local mock data if API fails
+        const emptyWeekData = this.createEmptyWeekData(weekStartDate);
+        this.weeklyNutrition.set(emptyWeekData);
+        // Cache the empty data
+        this.nutritionDataByWeek.set(weekKey, emptyWeekData);
         return of(null);
       }),
       finalize(() => {
@@ -477,15 +516,56 @@ export class NutritionService {
     this.loadWeeklyNutrition();
   }
 
-  // Create empty week data structure
-  private createEmptyWeekData(): DailyNutrition[] {
-    return this.generateWeekDates().map(date => ({
-      date: date,
-      foodItems: [],
-      totalCalories: 0,
-      totalProtein: 0,
-      totalCarbs: 0,
-      totalFat: 0
-    }));
+  // Create empty week data structure starting from a specific date
+  private createEmptyWeekData(startDate: Date = new Date()): DailyNutrition[] {
+    const weekStartDate = startOfWeek(startDate);
+    
+    return Array(7).fill(null).map((_, index) => {
+      const date = addDays(weekStartDate, index);
+      return {
+        date: date,
+        foodItems: [],
+        totalCalories: 0,
+        totalProtein: 0,
+        totalCarbs: 0,
+        totalFat: 0
+      };
+    });
+  }
+
+  // Navigation methods
+  goToPreviousWeek() {
+    // Save current week data before navigating
+    this.saveCurrentWeekData();
+    
+    const prevWeek = subWeeks(this.currentWeekDate(), 1);
+    this.currentWeekDate.set(prevWeek);
+    this.loadWeeklyNutrition();
+  }
+
+  goToNextWeek() {
+    // Save current week data before navigating
+    this.saveCurrentWeekData();
+    
+    const nextWeek = addWeeks(this.currentWeekDate(), 1);
+    this.currentWeekDate.set(nextWeek);
+    this.loadWeeklyNutrition();
+  }
+
+  goToCurrentWeek() {
+    this.currentWeekDate.set(new Date());
+    this.loadWeeklyNutrition();
+  }
+
+  // Store the current week's data in our local cache
+  private saveCurrentWeekData(): void {
+    const weekKey = this.getWeekKey(this.currentWeekDate());
+    this.nutritionDataByWeek.set(weekKey, this.weeklyNutrition());
+  }
+  
+  // Get a unique key for a week based on its start date
+  private getWeekKey(date: Date): string {
+    const weekStart = startOfWeek(date);
+    return format(weekStart, 'yyyy-MM-dd');
   }
 } 

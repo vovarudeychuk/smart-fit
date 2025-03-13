@@ -16,8 +16,7 @@ import { FoodQuantityDialogComponent } from '../shared/dialogs';
   template: `
   <div class="day-navigator">
       <button mat-mini-fab 
-              (click)="navigateToPreviousDay()" 
-              [disabled]="getCurrentDayIndex() === 0">
+              (click)="navigateToPreviousDay()">
         <mat-icon>arrow_back</mat-icon>
       </button>
       
@@ -27,8 +26,7 @@ import { FoodQuantityDialogComponent } from '../shared/dialogs';
       </div>
       
       <button mat-mini-fab 
-              (click)="navigateToNextDay()" 
-              [disabled]="getCurrentDayIndex() === 6">
+              (click)="navigateToNextDay()">
         <mat-icon>arrow_forward</mat-icon>
       </button>
     </div>
@@ -73,14 +71,26 @@ export class DayNavigatorComponent implements OnInit {
   navigateToPreviousDay(): void {
     const currentIndex = this.getCurrentDayIndex();
     if (currentIndex > 0) {
+      // Stay within the same week
       this.navigateToDay(currentIndex - 1);
+    } else {
+      // Go to previous week (to the last day of previous week)
+      this.nutritionService.goToPreviousWeek();
+      // After loading the previous week, navigate to its last day (index 6)
+      setTimeout(() => this.navigateToDay(6), 100);
     }
   }
   
   navigateToNextDay(): void {
     const currentIndex = this.getCurrentDayIndex();
     if (currentIndex < 6) {
+      // Stay within the same week
       this.navigateToDay(currentIndex + 1);
+    } else {
+      // Go to next week (to the first day of next week)
+      this.nutritionService.goToNextWeek();
+      // After loading the next week, navigate to its first day (index 0)
+      setTimeout(() => this.navigateToDay(0), 100);
     }
   }
   

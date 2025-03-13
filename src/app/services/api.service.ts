@@ -95,8 +95,16 @@ export class ApiService {
   }
 
   // Nutrition Tracking Endpoints
-  getWeeklyNutrition(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/nutrition/weekly`);
+  getWeeklyNutrition(weekStartDate?: string): Observable<any> {
+    let url = `${this.baseUrl}/nutrition/weekly`;
+    
+    // If a specific week is requested, add it as a query param
+    if (weekStartDate) {
+      const params = new HttpParams().set('weekStartDate', weekStartDate);
+      return this.http.get(url, { params });
+    }
+    
+    return this.http.get(url);
   }
 
   // Daily nutrition endpoints
@@ -149,14 +157,26 @@ export class ApiService {
   }
 
   // Add a food item to a specific day
-  addFoodToDay(dayIndex: number, foodItem: FoodItem): Observable<any> {
-    return this.http.post(`${this.baseUrl}/nutrition/day/${dayIndex}/foods`, foodItem)
-      .pipe(
+  addFoodToDay(dayIndex: number, foodItem: FoodItem, weekStartDate?: string): Observable<any> {
+    let url = `${this.baseUrl}/nutrition/day/${dayIndex}/foods`;
+    
+    // If a specific week is requested, add it as a query param
+    if (weekStartDate) {
+      const params = new HttpParams().set('weekStartDate', weekStartDate);
+      return this.http.post(url, foodItem, { params }).pipe(
         catchError(error => {
           console.error('Error adding food item:', error);
           return of(null);
         })
       );
+    }
+    
+    return this.http.post(url, foodItem).pipe(
+      catchError(error => {
+        console.error('Error adding food item:', error);
+        return of(null);
+      })
+    );
   }
 
   // Update a food item for a specific day
