@@ -108,4 +108,30 @@ export class AuthService {
         })
       );
   }
+
+  // Verify token on app startup
+  verifyAuth(): Observable<boolean> {
+    if (!this.hasValidToken()) {
+      this.isAuthenticated.set(false);
+      return of(false);
+    }
+
+    // Try to fetch the profile to verify token
+    return this.http.get<User>(`${this.baseUrl}/auth/profile`).pipe(
+      map(user => {
+        // Update user data
+        localStorage.setItem(this.userKey, JSON.stringify(user));
+        this.currentUser.set(user);
+        this.isAuthenticated.set(true);
+        return true;
+      }),
+      catchError(error => {
+        // If token is invalid, clear auth state
+        if (error.status === 401) {
+          this.logout();
+        }
+        return of(false);
+      })
+    );
+  }
 } 

@@ -1,11 +1,12 @@
-import { Component, inject, ViewChild } from '@angular/core';
+import { Component, inject, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from './services/auth.service';
 import { FoodSearchDialogComponent } from './components/shared/dialogs/food-search-dialog/food-search-dialog.component';
 import { FoodQuantityDialogComponent } from './components/shared/dialogs/food-quantity-dialog/food-quantity-dialog.component';
@@ -23,7 +24,8 @@ import { NutritionService } from './services/nutrition.service';
     MatButtonModule, 
     MatIconModule,
     MatMenuModule,
-    MatDialogModule
+    MatDialogModule,
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="app-container">
@@ -31,9 +33,9 @@ import { NutritionService } from './services/nutrition.service';
         <router-outlet></router-outlet>
       </div>
       
-      <!-- Bottom Navigation Bar -->
-      <div class="bottom-nav">
-        @if (authService.isAuthenticated()) {
+      <!-- Bottom Navigation Bar - Only show when authenticated -->
+      @if (authService.isAuthenticated()) {
+        <div class="bottom-nav">
           <div class="nav-button" routerLink="/dashboard" routerLinkActive="active">
             <mat-icon>dashboard</mat-icon>
             <span>Dashboard</span>
@@ -64,17 +66,8 @@ import { NutritionService } from './services/nutrition.service';
               <span>Logout</span>
             </button>
           </mat-menu>
-        } @else {
-          <div class="nav-button" routerLink="/login" routerLinkActive="active">
-            <mat-icon>login</mat-icon>
-            <span>Login</span>
-          </div>
-          <div class="nav-button" routerLink="/register" routerLinkActive="active">
-            <mat-icon>person_add</mat-icon>
-            <span>Register</span>
-          </div>
-        }
-      </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -135,10 +128,21 @@ import { NutritionService } from './services/nutrition.service';
     }
   `]
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   authService = inject(AuthService);
   dialog = inject(MatDialog);
   nutritionService = inject(NutritionService);
+  router = inject(Router);
+  
+  ngOnInit(): void {
+    // Verify authentication status on app startup
+    this.authService.verifyAuth().subscribe(isAuthenticated => {
+      if (!isAuthenticated) {
+        // If not authenticated, redirect to login
+        this.router.navigate(['/login']);
+      }
+    });
+  }
   
   logout(): void {
     this.authService.logout();

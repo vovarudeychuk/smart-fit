@@ -4,30 +4,46 @@ import { AuthService } from './services/auth.service';
 import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
 import { ProfileComponent } from './components/profile/profile.component';
+import { Router } from '@angular/router';
 
 // Auth guard function
 export const authGuard = () => {
   const authService = inject(AuthService);
+  const router = inject(Router);
   
   if (authService.isAuthenticated()) {
     return true;
   }
   
-  return { path: '/login' };
+  // Navigate to login page with a return url
+  router.navigate(['/login']);
+  return false;
+};
+
+// Guard to prevent authenticated users from accessing login/register
+export const nonAuthGuard = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  
+  if (!authService.isAuthenticated()) {
+    return true;
+  }
+  
+  // If already authenticated, redirect to dashboard
+  router.navigate(['/dashboard']);
+  return false;
 };
 
 export const routes: Routes = [
   { 
     path: 'login', 
     component: LoginComponent,
-    // Prevent accessing login when already authenticated
-    canActivate: [() => !inject(AuthService).isAuthenticated() || { path: '/dashboard' }]
+    canActivate: [nonAuthGuard]
   },
   { 
     path: 'register', 
     component: RegisterComponent,
-    // Prevent accessing register when already authenticated
-    canActivate: [() => !inject(AuthService).isAuthenticated() || { path: '/dashboard' }]
+    canActivate: [nonAuthGuard]
   },
   {
     path: 'dashboard',
@@ -44,6 +60,6 @@ export const routes: Routes = [
     component: ProfileComponent,
     canActivate: [authGuard]
   },
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-  { path: '**', redirectTo: '/dashboard' }
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: '**', redirectTo: '/login' }
 ];
