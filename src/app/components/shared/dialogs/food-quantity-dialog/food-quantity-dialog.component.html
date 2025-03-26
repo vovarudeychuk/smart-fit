@@ -1,120 +1,108 @@
 <div class="dialog-container">
   <div class="dialog-header">
-    <h2 mat-dialog-title>
-      <mat-icon [ngClass]="getFoodCategory(data.food)">{{getFoodIcon(data.food)}}</mat-icon>
-      Add {{ data.food.name }}
-    </h2>
-    <button mat-icon-button mat-dialog-close class="close-button">
+    <div class="header-content">
+      <div class="food-icon" [ngClass]="getFoodCategory()">
+        <mat-icon>{{ getFoodIcon() }}</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="title">{{ food.name }}</h2>
+        <div class="subtitle">Add to your food log</div>
+      </div>
+    </div>
+    <button mat-icon-button class="close-button" (click)="cancelDialog()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
   
   <mat-dialog-content>
-    <div class="food-info">
-      <div class="food-title">{{ data.food.name }}</div>
-      
-      <div class="nutrition-grid">
-        <div class="nutrition-item">
-          <div class="nutrition-value ccal">{{ data.food.calories }}</div>
-          <div class="nutrition-label">calories</div>
+    <div class="section-label">Nutrition (per serving)</div>
+    <div class="card-section">
+      <div class="macro-grid">
+        <div class="macro-item calories">
+          <div class="macro-value">{{ food.calories }}</div>
+          <div class="macro-label">CALORIES</div>
+          <mat-icon>local_fire_department</mat-icon>
         </div>
         
-        <div class="nutrition-item">
-          <div class="nutrition-value protein">{{ data.food.protein }}g</div>
-          <div class="nutrition-label">protein</div>
+        <div class="macro-item protein">
+          <div class="macro-value">{{ food.protein }}g</div>
+          <div class="macro-label">PROTEIN</div>
+          <mat-icon>fitness_center</mat-icon>
         </div>
         
-        <div class="nutrition-item">
-          <div class="nutrition-value carbs">{{ data.food.carbs }}g</div>
-          <div class="nutrition-label">carbs</div>
+        <div class="macro-item carbs">
+          <div class="macro-value">{{ food.carbs }}g</div>
+          <div class="macro-label">CARBS</div>
+          <mat-icon>grain</mat-icon>
         </div>
         
-        <div class="nutrition-item">
-          <div class="nutrition-value fat">{{ data.food.fat }}g</div>
-          <div class="nutrition-label">fat</div>
+        <div class="macro-item fat">
+          <div class="macro-value">{{ food.fat }}g</div>
+          <div class="macro-label">FAT</div>
+          <mat-icon>water_drop</mat-icon>
         </div>
       </div>
-      
-      <div class="serving-info">Per {{ data.food.servingSize }}</div>
+      <div class="base-serving">Base serving: {{ food.servingSize }}</div>
     </div>
 
+    <div class="section-label">Adjust quantity</div>
     <div class="quantity-inputs">
-      <mat-form-field appearance="outline" color="primary">
-        <mat-label>Number of servings</mat-label>
-        <input 
-          matInput 
-          type="number"
-          min="0.25" 
-          step="0.25" 
-          [(ngModel)]="quantity" 
-          (input)="updateTotals()">
-        <mat-icon matSuffix>local_dining</mat-icon>
+      <mat-form-field appearance="outline">
+        <mat-label>Quantity</mat-label>
+        <input matInput type="number" [(ngModel)]="quantity" min="0.1" step="0.1" (ngModelChange)="updateTotals()">
+        <div matSuffix style="display: flex; gap: 8px;">
+          <button mat-icon-button type="button" (click)="decreaseQuantity()" [disabled]="quantity <= 1">
+            <mat-icon>remove</mat-icon>
+          </button>
+          <button mat-icon-button type="button" (click)="increaseQuantity()">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
       </mat-form-field>
-
-      <mat-form-field appearance="outline" color="primary">
-        <mat-label>Grams</mat-label>
-        <input 
-          matInput 
-          type="number" 
-          min="1"
-          [(ngModel)]="servingSize" 
-          (input)="updateTotals()">
-        <span matSuffix>g</span>
+      <span class="multiply-sign">×</span>
+      <mat-form-field appearance="outline">
+        <mat-label>Serving (g)</mat-label>
+        <input matInput type="number" [(ngModel)]="servingSize" min="1" (ngModelChange)="updateTotals()">
       </mat-form-field>
     </div>
 
-    <div class="totals-container">
-      <h3>Total nutrition</h3>
-      
-      <div class="totals-grid">
-        <div class="total-item">
-          <div class="total-icon ccal">
-            <mat-icon>local_fire_department</mat-icon>
-          </div>
-          <div class="total-content">
-            <div class="total-value">{{ totalCalories | number:'1.0-0' }} kcal</div>
-            <div class="total-label">Calories</div>
-          </div>
+    <div class="section-label">Total nutrition</div>
+    <div class="totals-card">
+      <div class="total-row">
+        <div class="total-icon calories">
+          <mat-icon>local_fire_department</mat-icon>
         </div>
-        
-        <div class="total-item">
-          <div class="total-icon protein">
-            <mat-icon>fitness_center</mat-icon>
-          </div>
-          <div class="total-content">
-            <div class="total-value">{{ totalProtein | number:'1.0-1' }}g</div>
-            <div class="total-label">Protein</div>
-          </div>
-        </div>
-        
-        <div class="total-item">
-          <div class="total-icon carbs">
-            <mat-icon>bakery_dining</mat-icon>
-          </div>
-          <div class="total-content">
-            <div class="total-value">{{ totalCarbs | number:'1.0-1' }}g</div>
-            <div class="total-label">Carbs</div>
-          </div>
-        </div>
-        
-        <div class="total-item">
-          <div class="total-icon fat">
-            <mat-icon>egg_alt</mat-icon>
-          </div>
-          <div class="total-content">
-            <div class="total-value">{{ totalFat | number:'1.0-1' }}g</div>
-            <div class="total-label">Fat</div>
-          </div>
+        <div class="total-info">
+          <div class="total-label">Total calories</div>
+          <div class="total-value">{{ totalCalories }}</div>
         </div>
       </div>
+      
+      <div class="macros-row">
+        <div class="macro-chip protein">
+          <mat-icon>fitness_center</mat-icon>
+          {{ totalProtein }}g
+        </div>
+        
+        <div class="macro-chip carbs">
+          <mat-icon>grain</mat-icon>
+          {{ totalCarbs }}g
+        </div>
+        
+        <div class="macro-chip fat">
+          <mat-icon>water_drop</mat-icon>
+          {{ totalFat }}g
+        </div>
+      </div>
+      
+      <div class="serving-summary">{{ quantity }} × {{ servingSize }}g</div>
     </div>
   </mat-dialog-content>
   
-  <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close class="cancel-button">Cancel</button>
-    <button mat-raised-button color="primary" (click)="saveFood()" class="save-button">
-      <mat-icon>add_circle</mat-icon>
-      Add Food
+  <mat-dialog-actions>
+    <button mat-button class="cancel-button" (click)="cancelDialog()">Cancel</button>
+    <button mat-flat-button color="primary" class="save-button" (click)="saveFood()">
+      Add to Log
     </button>
   </mat-dialog-actions>
 </div> 

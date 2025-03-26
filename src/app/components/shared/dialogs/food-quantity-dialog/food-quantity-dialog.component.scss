@@ -1,5 +1,5 @@
- /* Fix for dialog background */
- ::ng-deep .mat-mdc-dialog-container {
+/* Fix for dialog background */
+::ng-deep .mat-mdc-dialog-container {
   --mdc-dialog-container-color: white !important;
   border-radius: 16px !important;
   overflow: hidden;
@@ -8,83 +8,240 @@
 .dialog-container {
   color: rgba(0, 0, 0, 0.87);
   background-color: white;
-  min-width: 350px;
-  max-width: 450px; 
   width: 100%;
   box-sizing: border-box; 
   overflow-x: hidden;
-  overflow-y: hidden;
-
+  font-family: 'Roboto', sans-serif;
 }
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 8px;
+  padding: 16px 16px 16px 20px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* Dialog title */
-.mat-mdc-dialog-title {
-  color: rgba(0, 0, 0, 0.87) !important;
-  font-size: 20px !important;
-  font-weight: 500 !important;
-  display: flex !important;
-  align-items: center !important;
-  letter-spacing: 0.15px;
-  margin-bottom: 0 !important;
+.header-content {
+  display: flex;
+  align-items: center;
+}
 
-  mat-icon {
-    margin-right: 8px;
-    font-size: 24px;
-    height: 24px;
-    width: 24px;
-    padding: 4px;
-    border-radius: 50%;
+.food-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  margin-right: 16px;
+  
+  &.protein {
+    background-color: rgba(76, 175, 80, 0.12);
     
-    &.protein {
-      background-color: rgba(76, 175, 80, 0.12);
+    mat-icon {
       color: #4caf50;
     }
+  }
+  
+  &.carbs {
+    background-color: rgba(33, 150, 243, 0.12);
     
-    &.carbs {
-      background-color: rgba(33, 150, 243, 0.12);
+    mat-icon {
       color: #2196f3;
     }
+  }
+  
+  &.fat {
+    background-color: rgba(255, 152, 0, 0.12);
     
-    &.fat {
-      background-color: rgba(255, 152, 0, 0.12);
+    mat-icon {
       color: #ff9800;
     }
+  }
+  
+  &.mixed {
+    background-color: rgba(156, 39, 176, 0.12);
     
-    &.mixed {
-      background-color: rgba(156, 39, 176, 0.12);
+    mat-icon {
       color: #9c27b0;
     }
   }
+  
+  mat-icon {
+    font-size: 24px;
+    height: 24px;
+    width: 24px;
+  }
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.87);
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: 4px;
 }
 
 .close-button {
-  margin-right: 8px;
-  margin-top: -6px;
+  margin-right: 4px;
 }
 
-
-/* Dialog content and scrolling fix */
+/* Dialog content */
 ::ng-deep .mat-mdc-dialog-content {
   display: block !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  overflow-x: hidden !important;
-  overflow-y: hidden !important;
-
-  padding: 0 20px !important;
+  padding: 16px 20px !important;
+  max-height: calc(100vh - 180px) !important;
 }
 
-/* Fix for number input wheel event */
+/* Section labels */
+.section-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 24px 0 12px;
+  letter-spacing: 0.1px;
+}
+
+/* Card section for macros */
+.card-section {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+.macro-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 8px;
+  border-radius: 10px;
+  background: white;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  
+  mat-icon {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    opacity: 0.3;
+  }
+  
+  &.calories {
+    mat-icon {
+      color: #673ab7;
+    }
+  }
+  
+  &.protein {
+    mat-icon {
+      color: #4caf50;
+    }
+  }
+  
+  &.carbs {
+    mat-icon {
+      color: #2196f3;
+    }
+  }
+  
+  &.fat {
+    mat-icon {
+      color: #ff9800;
+    }
+  }
+}
+
+.macro-value {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  
+  .calories & {
+    color: #673ab7;
+  }
+  
+  .protein & {
+    color: #4caf50;
+  }
+  
+  .carbs & {
+    color: #2196f3;
+  }
+  
+  .fat & {
+    color: #ff9800;
+  }
+}
+
+.macro-label {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.base-serving {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  text-align: center;
+  margin-top: 12px;
+  font-style: italic;
+}
+
+/* Quantity inputs */
+.quantity-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 16px;
+  width: 100%;
+}
+
+.multiply-sign {
+  font-size: 20px;
+  color: rgba(0, 0, 0, 0.5);
+  margin: 0 4px;
+}
+
+.quantity-inputs mat-form-field {
+  flex: 1;
+  min-width: 80px;
+}
+
+/* Override styles for number inputs */
 ::ng-deep input[type=number] {
-  -moz-appearance: textfield; /* Firefox */
+  -moz-appearance: textfield;
 }
 
 ::ng-deep input::-webkit-outer-spin-button,
@@ -93,208 +250,127 @@
   margin: 0;
 }
 
-/* Form field text color */
-::ng-deep .mat-mdc-form-field-input-control {
-  color: rgba(0, 0, 0, 0.87) !important;
-}
-
-/* Form field label color */
-::ng-deep .mat-mdc-form-field-label {
-  color: rgba(0, 0, 0, 0.6) !important;
-}
-
-/* Form field focus color */
-::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-ripple {
-  background-color: #673ab7 !important;
-}
-
-/* Food info section */
-.food-info {
-  margin-bottom: 24px;
-  margin-top: 24px;
-  padding: 16px;
-  border-radius: 12px;
-  background-color: rgba(0, 0, 0, 0.03);
-  color: rgba(0, 0, 0, 0.87);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
-  animation: fadeIn 0.3s ease-out;
-}
-
-.food-title {
-  font-size: 18px;
-  font-weight: 500;
-  margin-bottom: 12px;
-  color: #673ab7;
-  letter-spacing: 0.15px;
-}
-
-.nutrition-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-  gap: 8px;
-  margin: 16px 0;
-}
-
-.nutrition-item {
-  text-align: center;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.nutrition-value {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  
-  &.ccal {
-    color: #3F51B5;
-  }
-  
-  &.protein {
-    color: #4caf50;
-  }
-  
-  &.carbs {
-    color: #2196f3;
-  }
-  
-  &.fat {
-    color: #ff9800;
-  }
-}
-
-.nutrition-label {
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.serving-info {
-  font-style: italic;
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.6);
-  text-align: center;
-  margin-top: 8px;
-}
-
-/* Quantity inputs */
-.quantity-inputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin: 16px 0;
-  width: 100%;
-}
-
-.quantity-inputs mat-form-field {
-  flex: 1;
-  min-width: 120px;
-  box-sizing: border-box;
-}
-
 /* Total nutrition section */
-.totals-container {
+.totals-card {
   background-color: rgba(103, 58, 183, 0.05);
   border-radius: 12px;
   padding: 16px;
-  color: rgba(0, 0, 0, 0.87);
-  animation: fadeIn 0.3s ease-out;
-}
-
-.totals-container h3 {
-  margin-top: 0;
   margin-bottom: 16px;
-  color: #673ab7;
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: 0.15px;
 }
 
-.totals-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-  width: 100%;
-}
-
-.total-item {
+.total-row {
   display: flex;
   align-items: center;
-  width: 100%;
-  box-sizing: border-box;
+  margin-bottom: 16px;
 }
 
 .total-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  margin-right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  margin-right: 16px;
+  flex-shrink: 0;
   
-  &.ccal {
-    background-color: rgba(63, 81, 181, 0.15);
-    color: #3F51B5;
+  &.calories {
+    background-color: rgba(103, 58, 183, 0.15);
+    
+    mat-icon {
+      color: #673ab7;
+    }
+  }
+  
+  mat-icon {
+    font-size: 24px;
+    height: 24px;
+    width: 24px;
+  }
+}
+
+.total-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.total-label {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 4px;
+}
+
+.total-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #673ab7;
+}
+
+.macros-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.macro-chip {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  
+  mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    margin-right: 6px;
   }
   
   &.protein {
-    background-color: rgba(76, 175, 80, 0.15);
+    background-color: rgba(76, 175, 80, 0.12);
     color: #4caf50;
   }
   
   &.carbs {
-    background-color: rgba(33, 150, 243, 0.15);
+    background-color: rgba(33, 150, 243, 0.12);
     color: #2196f3;
   }
   
   &.fat {
-    background-color: rgba(255, 152, 0, 0.15);
+    background-color: rgba(255, 152, 0, 0.12);
     color: #ff9800;
   }
 }
 
-.total-content {
-  flex: 1;
+.serving-summary {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.5);
+  text-align: center;
+  font-style: italic;
 }
 
-.total-value {
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 1.2;
-}
-
-.total-label {
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.6);
-}
-
-/* Dialog actions */
+/* Action buttons */
 ::ng-deep .mat-mdc-dialog-actions {
-  /* padding: 12px 24px 24px !important; */
-  gap: 16px;
+  padding: 8px 20px 20px !important;
+  display: flex;
+  justify-content: space-between !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  margin: 0 !important;
 }
 
 .cancel-button {
-  color: rgba(0, 0, 0, 0.6) !important;
-  letter-spacing: 0.5px;
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .save-button {
-  background-color: #673ab7 !important;
-  color: white !important;
-  /* font-weight: 500 !important; */
-  /* letter-spacing: 0.5px; */
-  /* padding: 0 24px !important; */
-  
-  mat-icon {
-    margin-right: 8px;
-  }
+  font-weight: 500;
+  padding: 0 24px;
 }
 
-/* Add a more specific rule to prevent horizontal overflow */
-::ng-deep .mat-mdc-dialog-surface {
-  overflow-x: hidden !important;
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

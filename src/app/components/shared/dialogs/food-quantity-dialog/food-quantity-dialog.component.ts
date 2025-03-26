@@ -1,114 +1,149 @@
-import { Component, inject, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { FormsModule } from '@angular/forms';
 import { FoodItem } from '../../../../models/food-item.model';
 import { FoodQuantityDialogData } from '../../../../models/food-quantity-dialog-data.model';
 
 export interface FoodQuantityResult {
   food: FoodItem;
   quantity: number;
-  servingSize: number;
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
 }
 
 @Component({
   selector: 'app-food-quantity-dialog',
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
-    MatDialogModule, 
-    MatFormFieldModule, 
-    MatInputModule, 
+    CommonModule,
+    MatDialogModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
+    MatInputModule,
+    MatFormFieldModule,
+    FormsModule
   ],
   templateUrl: './food-quantity-dialog.component.html',
-  styleUrl: './food-quantity-dialog.component.scss'
+  styleUrls: ['./food-quantity-dialog.component.scss']
 })
-export class FoodQuantityDialogComponent {
-  private dialogRef = inject(MatDialogRef<FoodQuantityDialogComponent>);
+export class FoodQuantityDialogComponent implements OnInit {
+  food: FoodItem;
+  mealType: string = 'meal';
+  quantity: number = 1;
+  servingSize: number = 100;
+  baseServingSize: number = 100;
   
-  quantity = 1;
-  servingSize = 100; // Default to 100g
-  
-  // Don't initialize these here - do it in the constructor
-  totalCalories!: number;
-  totalProtein!: number;
-  totalCarbs!: number;
-  totalFat!: number;
-  
-  constructor(@Inject(MAT_DIALOG_DATA) public data: FoodQuantityDialogData) {
-    // Initialize with provided values or defaults
-    this.quantity = data.initialQuantity || 1;
-    this.servingSize = data.initialServingSize || 100;
+  // Calculated totals
+  totalCalories: number = 0;
+  totalProtein: number = 0;
+  totalCarbs: number = 0;
+  totalFat: number = 0;
+
+  constructor(
+    public dialogRef: MatDialogRef<FoodQuantityDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: FoodQuantityDialogData
+  ) {
+    this.food = data.food;
     
-    // Initialize calculated values
-    this.totalCalories = this.data.food.calories;
-    this.totalProtein = this.data.food.protein;
-    this.totalCarbs = this.data.food.carbs;
-    this.totalFat = this.data.food.fat;
+    // Parse servingSize string to get numeric value
+    const servingSizeMatch = this.food.servingSize.match(/(\d+)/);
+    if (servingSizeMatch && servingSizeMatch[1]) {
+      this.servingSize = parseInt(servingSizeMatch[1], 10);
+      this.baseServingSize = this.servingSize;
+    }
     
-    // If we have initial values, update the totals
-    if (data.initialQuantity || data.initialServingSize) {
+    // If food already has a quantity (editing mode)
+    if (data.initialQuantity) {
+      this.quantity = data.initialQuantity;
+    }
+    
+    // If initial serving size is provided
+    if (data.initialServingSize) {
+      this.servingSize = data.initialServingSize;
+    }
+    
+    this.updateTotals();
+  }
+
+  ngOnInit(): void {
+    // Any additional initialization
+  }
+
+  updateTotals(): void {
+    // Calculate nutritional totals based on serving size and quantity
+    const ratio = this.servingSize / this.baseServingSize * this.quantity;
+    
+    this.totalCalories = Math.round(this.food.calories * ratio);
+    this.totalProtein = Math.round(this.food.protein * ratio * 10) / 10;
+    this.totalCarbs = Math.round(this.food.carbs * ratio * 10) / 10;
+    this.totalFat = Math.round(this.food.fat * ratio * 10) / 10;
+  }
+
+  saveFood(): void {
+    // Create a copy of the food with adjusted quantity
+    const adjustedFood = { ...this.food };
+    
+    // Return the result
+    const result: FoodQuantityResult = {
+      food: adjustedFood,
+      quantity: this.quantity,
+      totalCalories: this.totalCalories,
+      totalProtein: this.totalProtein,
+      totalCarbs: this.totalCarbs,
+      totalFat: this.totalFat
+    };
+    
+    this.dialogRef.close(result);
+  }
+
+  cancelDialog(): void {
+    this.dialogRef.close();
+  }
+
+  increaseQuantity(): void {
+    this.quantity += 1;
+    this.updateTotals();
+  }
+
+  decreaseQuantity(): void {
+    if (this.quantity > 1) {
+      this.quantity -= 1;
       this.updateTotals();
     }
   }
-  
-  updateTotals() {
-    // Calculate based on proportional serving size
-    const servingRatio = this.quantity * (this.servingSize / 100);
-    
-    this.totalCalories = this.data.food.calories * servingRatio;
-    this.totalProtein = this.data.food.protein * servingRatio;
-    this.totalCarbs = this.data.food.carbs * servingRatio;
-    this.totalFat = this.data.food.fat * servingRatio;
+
+  getFoodCategory(): string {
+    // Determine the food's primary macronutrient category
+    if (this.food.protein >= this.food.carbs && this.food.protein >= this.food.fat) {
+      return 'protein';
+    } else if (this.food.carbs >= this.food.protein && this.food.carbs >= this.food.fat) {
+      return 'carbs';
+    } else if (this.food.fat >= this.food.protein && this.food.fat >= this.food.carbs) {
+      return 'fat';
+    } else {
+      return 'mixed';
+    }
   }
-  
-  saveFood() {
-    // Create a modified food item with adjusted values
-    const adjustedFood: FoodItem = {
-      ...this.data.food,
-      calories: this.totalCalories,
-      protein: this.totalProtein,
-      carbs: this.totalCarbs,
-      fat: this.totalFat,
-      servingSize: `${this.quantity} x ${this.servingSize}g`
-    };
+
+  getFoodIcon(): string {
+    const category = this.getFoodCategory();
     
-    this.dialogRef.close({
-      food: adjustedFood,
-      quantity: this.quantity,
-      servingSize: this.servingSize
-    });
-  }
-  
-  // Helper method to categorize foods
-  getFoodCategory(food: FoodItem): string {
-    const proteinRatio = food.protein * 4 / food.calories;
-    const carbsRatio = food.carbs * 4 / food.calories;
-    const fatRatio = food.fat * 9 / food.calories;
-    
-    // Determine the dominant macronutrient
-    if (proteinRatio > 0.4) return 'protein';
-    if (carbsRatio > 0.4) return 'carbs';
-    if (fatRatio > 0.4) return 'fat';
-    return 'mixed';
-  }
-  
-  // Helper method to get appropriate icons
-  getFoodIcon(food: FoodItem): string {
-    const category = this.getFoodCategory(food);
-    
-    switch(category) {
-      case 'protein': return 'fitness_center';
-      case 'carbs': return 'bakery_dining';
-      case 'fat': return 'egg_alt';
-      default: return 'restaurant';
+    switch (category) {
+      case 'protein':
+        return 'fitness_center';
+      case 'carbs':
+        return 'grain';
+      case 'fat':
+        return 'water_drop';
+      default:
+        return 'restaurant';
     }
   }
 } 
