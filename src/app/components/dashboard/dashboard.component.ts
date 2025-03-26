@@ -34,9 +34,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
             
             <mat-card-content>
               <app-day-navigator></app-day-navigator>
-              
-              <mat-divider class="divider"></mat-divider>
-              
+      
               <app-food-list></app-food-list>
             </mat-card-content>
           </mat-card>

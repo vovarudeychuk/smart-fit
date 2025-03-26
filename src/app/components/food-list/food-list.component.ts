@@ -154,7 +154,14 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
       }
       
       @media (max-width: 480px) {
-        display: none;
+        margin-right: 0;
+        
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          line-height: 18px;
+        }
       }
     }
     
@@ -371,6 +378,19 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
       border-radius: 4px;
       background-color: white;
       padding: 8px 16px;
+    }
+
+    /* Add drag handle cue */
+    .cdk-drag-placeholder {
+      opacity: 0;
+    }
+
+    .cdk-drag-animating {
+      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    .mat-list.cdk-drop-list-dragging .mat-list-item:not(.cdk-drag-placeholder) {
+      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
     }
   `
 })
