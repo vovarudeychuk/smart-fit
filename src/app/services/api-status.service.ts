@@ -18,7 +18,7 @@ export class ApiStatusService {
     this.checkApiStatus();
     
     // Recheck periodically (every 30 seconds)
-    timer(30000, 30000).subscribe(() => this.checkApiStatus());
+    timer(3000, 3000).subscribe(() => this.checkApiStatus());
   }
   
   // Method to check if API is available
