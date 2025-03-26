@@ -46,13 +46,15 @@ import { NutritionService } from './services/nutrition.service';
             <span>Journal</span>
           </div>
           
-          <div class="nav-button" (click)="openAddFoodModal()">
-            <mat-icon>add_circle</mat-icon>
+          <div class="nav-button add-button" (click)="openAddFoodModal()">
+            <div class="add-circle">
+              <mat-icon>add</mat-icon>
+            </div>
             <span>Add Food</span>
           </div>
           
           <div class="nav-button" [matMenuTriggerFor]="menu">
-            <mat-icon>more_vert</mat-icon>
+            <mat-icon>more_horiz</mat-icon>
             <span>More</span>
           </div>
           
@@ -82,6 +84,10 @@ import { NutritionService } from './services/nutrition.service';
       flex: 1;
       overflow-y: auto;
       padding-bottom: 70px; /* Make room for bottom nav */
+      
+      @media (max-width: 480px) {
+        padding-bottom: 76px;
+      }
     }
     
     .bottom-nav {
@@ -89,14 +95,25 @@ import { NutritionService } from './services/nutrition.service';
       bottom: 0;
       left: 0;
       right: 0;
-      height: 60px;
-      background-color: #3f51b5;
-      color: white;
+      height: 64px;
+      background-color: #ffffff;
+      color: #555555;
       display: flex;
       justify-content: space-around;
       align-items: center;
-      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.15);
       z-index: 1000;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      padding: 0 12px;
+      
+      @media (max-width: 480px) {
+        height: 60px;
+      }
+      
+      @media (max-width: 360px) {
+        padding: 0 4px;
+      }
     }
     
     .nav-button {
@@ -107,24 +124,97 @@ import { NutritionService } from './services/nutrition.service';
       height: 100%;
       flex: 1;
       cursor: pointer;
-      transition: background-color 0.3s;
+      transition: all 0.3s;
       padding: 0 12px;
+      position: relative;
+      
+      @media (max-width: 360px) {
+        padding: 0 8px;
+      }
+      
+      mat-icon {
+        color: #555555;
+        margin-bottom: 4px;
+        transition: all 0.3s;
+        
+        @media (max-width: 480px) {
+          font-size: 22px;
+          height: 22px;
+          width: 22px;
+          line-height: 22px;
+        }
+      }
+      
+      span {
+        font-size: 12px;
+        transition: all 0.3s;
+        
+        @media (max-width: 480px) {
+          font-size: 11px;
+        }
+        
+        @media (max-width: 360px) {
+          font-size: 10px;
+        }
+      }
     }
     
     .nav-button:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      mat-icon, span {
+        color: #673ab7;
+      }
     }
     
     .nav-button.active {
-      background-color: rgba(255, 255, 255, 0.2);
+      mat-icon, span {
+        color: #673ab7;
+        font-weight: 500;
+      }
+      
+      &::after {
+        content: '';
+        position: absolute;
+        width: 30px;
+        height: 3px;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #673ab7;
+        border-radius: 8px 8px 0 0;
+      }
     }
     
-    .nav-button mat-icon {
-      margin-bottom: 2px;
-    }
-    
-    .nav-button span {
-      font-size: 12px;
+    /* Special styling for add button */
+    .add-button {
+      margin-top: -24px;
+      
+      .add-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: #673ab7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 2px;
+        box-shadow: 0 4px 8px rgba(103, 58, 183, 0.3);
+        
+        mat-icon {
+          color: white;
+          margin-bottom: 0;
+        }
+        
+        @media (max-width: 480px) {
+          width: 44px;
+          height: 44px;
+        }
+      }
+      
+      &:hover .add-circle {
+        background-color: #7b52d3;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 10px rgba(103, 58, 183, 0.4);
+      }
     }
   `]
 })

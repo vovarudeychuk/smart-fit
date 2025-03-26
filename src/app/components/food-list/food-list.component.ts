@@ -15,52 +15,364 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
   standalone: true,
   imports: [CommonModule, MatListModule, MatIconModule, MatButtonModule, DragDropModule],
   template: `
-  <div class="food-list mat-elevation-z1">
-    @if (currentDay().foodItems.length > 0) {
-      <mat-list cdkDropList 
-        id="food-list" 
-        [cdkDropListData]="currentDay().foodItems" 
-        [cdkDropListConnectedTo]="getDropListIds()"
-        (cdkDropListDropped)="drop($event)">
-        @for (food of currentDay().foodItems; track food.id + '-' + $index) {
-          <mat-list-item cdkDrag [cdkDragData]="food">
-            <div class="food-item-container">
-              <div class="drag-handle" cdkDragHandle>
-                <mat-icon>drag_indicator</mat-icon>
+  <div class="food-list-container">
+    <div class="food-list mat-elevation-z1">
+      <div class="food-list-header">
+        <h3 class="list-heading">Today's Food</h3>
+        <span class="food-count" *ngIf="currentDay().foodItems.length > 0">
+          {{ currentDay().foodItems.length }} items
+        </span>
+      </div>
+      
+      @if (currentDay().foodItems.length > 0) {
+        <mat-list cdkDropList 
+          id="food-list" 
+          [cdkDropListData]="currentDay().foodItems" 
+          [cdkDropListConnectedTo]="getDropListIds()"
+          (cdkDropListDropped)="drop($event)">
+          @for (food of currentDay().foodItems; track food.id + '-' + $index) {
+            <mat-list-item cdkDrag [cdkDragData]="food">
+              <div class="food-item-container">
+                <div class="food-item-left">
+                  <div class="drag-handle" cdkDragHandle>
+                    <mat-icon>drag_indicator</mat-icon>
+                  </div>
+                  
+                  <div class="food-icon" [ngClass]="getFoodCategory(food)">
+                    <mat-icon>{{getFoodIcon(food)}}</mat-icon>
+                  </div>
+                </div>
+                
+                <div class="food-item">
+                  <div class="food-name-row">
+                    <span class="food-name">{{ food.name }}</span>
+                    <span class="calories">{{ food.calories }} kcal</span>
+                  </div>
+                  <div class="food-details">
+                    <div class="macros">
+                      <span class="macro protein">P: {{ food.protein }}g</span>
+                      <span class="macro carbs">C: {{ food.carbs }}g</span>
+                      <span class="macro fat">F: {{ food.fat }}g</span>
+                    </div>
+                    <span class="serving-size">({{ food.servingSize }})</span>
+                  </div>
+                </div>
+                
+                <div class="food-actions">
+                  <button mat-icon-button color="primary" (click)="editFood(food)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="deleteFood(food)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
               </div>
-              
-              <div class="food-icon" [ngClass]="getFoodCategory(food)">
-                <mat-icon>{{getFoodIcon(food)}}</mat-icon>
-              </div>
-              
-              <div class="food-item">
-                <span class="food-name">{{ food.name }}</span>
-                <span class="food-details">
-                  <span [style.color]="'#9c27b0'">{{ food.calories }} kcal</span> | 
-                  <span [style.color]="'#4caf50'">P: {{ food.protein }}g</span> | 
-                  <span [style.color]="'#2196f3'">C: {{ food.carbs }}g</span> | 
-                  <span [style.color]="'#ff9800'">F: {{ food.fat }}g</span> | 
-                  ({{ food.servingSize }})
-                </span>
-              </div>
-              <div class="food-actions">
-                <button mat-icon-button color="primary" (click)="editFood(food)">
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <button mat-icon-button color="warn" (click)="deleteFood(food)">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
-            </div>
-          </mat-list-item>
-        }
-      </mat-list>
-    } @else {
-      <p class="empty-message">No food items added yet for this day.</p>
-    }
+            </mat-list-item>
+          }
+        </mat-list>
+      } @else {
+        <p class="empty-message">No food items added yet for this day.</p>
+      }
+    </div>
   </div>
 `,
-  styleUrl: './food-list.component.scss'
+  styles: `
+    .food-list-container {
+      width: 100%;
+      padding: 0;
+    }
+    
+    .food-list {
+      background-color: white;
+      border-radius: 12px;
+      margin: 0 0 24px;
+      overflow: hidden;
+    }
+    
+    .food-list-header {
+      background-color: #f8f8f8;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      
+      @media (max-width: 480px) {
+        padding: 12px;
+      }
+    }
+    
+    .list-heading {
+      margin: 0;
+      font-size: 18px;
+      color: rgba(0, 0, 0, 0.87);
+      font-weight: 500;
+      
+      @media (max-width: 480px) {
+        font-size: 16px;
+      }
+    }
+    
+    .food-count {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
+      
+      @media (max-width: 480px) {
+        font-size: 12px;
+      }
+    }
+    
+    .empty-message {
+      padding: 20px 16px;
+      text-align: center;
+      color: rgba(0, 0, 0, 0.6);
+    }
+    
+    .food-item-container {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 12px 0;
+      
+      @media (max-width: 480px) {
+        padding: 8px 0;
+      }
+    }
+    
+    .food-item-left {
+      display: flex;
+      align-items: center;
+    }
+    
+    .drag-handle {
+      cursor: move;
+      color: rgba(0, 0, 0, 0.3);
+      margin-right: 4px;
+      
+      &:hover {
+        color: rgba(0, 0, 0, 0.6);
+      }
+      
+      @media (max-width: 480px) {
+        display: none;
+      }
+    }
+    
+    .food-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      margin-right: 16px;
+      
+      &.protein {
+        background-color: rgba(76, 175, 80, 0.1);
+        
+        mat-icon {
+          color: #4caf50;
+        }
+      }
+      
+      &.carbs {
+        background-color: rgba(33, 150, 243, 0.1);
+        
+        mat-icon {
+          color: #2196f3;
+        }
+      }
+      
+      &.fat {
+        background-color: rgba(255, 152, 0, 0.1);
+        
+        mat-icon {
+          color: #ff9800;
+        }
+      }
+      
+      &.mixed {
+        background-color: rgba(156, 39, 176, 0.1);
+        
+        mat-icon {
+          color: #9c27b0;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        width: 28px;
+        height: 28px;
+        margin-right: 8px;
+        border-radius: 6px;
+        
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          line-height: 16px;
+        }
+      }
+    }
+    
+    .food-item {
+      flex: 1;
+      margin: 0 12px;
+      display: flex;
+      flex-direction: column;
+      
+      @media (max-width: 480px) {
+        margin: 0 6px;
+      }
+    }
+    
+    .food-name-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .food-name {
+      font-weight: 500;
+      font-size: 16px;
+      
+      @media (max-width: 480px) {
+        font-size: 14px;
+      }
+    }
+    
+    .food-details {
+      display: flex;
+      align-items: center;
+      margin-top: 6px;
+      
+      @media (max-width: 480px) {
+        margin-top: 2px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+    
+    .calories {
+      color: #9c27b0;
+      font-weight: 500;
+      font-size: 14px;
+      
+      @media (max-width: 480px) {
+        font-size: 12px;
+      }
+    }
+    
+    .macros {
+      display: flex;
+      gap: 8px;
+      
+      @media (max-width: 480px) {
+        gap: 4px;
+        margin-top: 2px;
+      }
+    }
+    
+    .macro {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      
+      @media (max-width: 480px) {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 3px;
+      }
+    }
+    
+    .protein {
+      background-color: rgba(76, 175, 80, 0.1);
+      color: #4caf50;
+    }
+    
+    .carbs {
+      background-color: rgba(33, 150, 243, 0.1);
+      color: #2196f3;
+    }
+    
+    .fat {
+      background-color: rgba(255, 152, 0, 0.1);
+      color: #ff9800;
+    }
+    
+    .serving-size {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 12px;
+      margin-left: 16px;
+      
+      @media (max-width: 600px) {
+        margin-left: 0;
+        margin-top: 2px;
+        font-size: 10px;
+      }
+    }
+    
+    .food-actions {
+      display: flex;
+      
+      button {
+        margin-left: 4px;
+      }
+      
+      @media (max-width: 480px) {
+        flex-direction: column;
+        
+        button {
+          margin-left: 0;
+          margin-bottom: 2px;
+          
+          mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            line-height: 18px;
+          }
+        }
+      }
+    }
+    
+    /* Override styles from the SCSS file */
+    ::ng-deep .mat-mdc-list-item {
+      padding: 4px 16px !important;
+      height: auto !important;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+      
+      @media (max-width: 480px) {
+        padding: 2px 10px !important;
+      }
+    }
+    
+    ::ng-deep .mat-mdc-list-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 16px;
+      right: 16px;
+      height: 1px;
+      background-color: rgba(0,0,0,0.06);
+      
+      @media (max-width: 480px) {
+        left: 10px;
+        right: 10px;
+      }
+    }
+    
+    /* Drag and drop styling */
+    .cdk-drag-preview {
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      background-color: white;
+      padding: 8px 16px;
+    }
+  `
 })
 export class FoodListComponent {
   private nutritionService = inject(NutritionService);
@@ -97,6 +409,7 @@ export class FoodListComponent {
     // Open dialog with this food
     const dialogRef = this.dialog.open(FoodQuantityDialogComponent, {
       width: '400px',
+      maxWidth: '95vw',
       data: { 
         food: baseFood,
         initialQuantity: quantity,
@@ -115,6 +428,7 @@ export class FoodListComponent {
   deleteFood(food: FoodItem): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
+      maxWidth: '95vw',
       data: {
         title: 'Delete Food Item',
         message: `Are you sure you want to remove ${food.name} from your food log?`

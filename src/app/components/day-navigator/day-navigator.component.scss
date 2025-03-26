@@ -3,9 +3,29 @@
   justify-content: space-between;
   padding: 16px 8px;
   margin-bottom: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer and Edge */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
+  }
   
   app-circle-day {
     margin: 0 4px;
+    flex-shrink: 0;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 12px 4px;
+    justify-content: flex-start;
+    
+    app-circle-day {
+      margin: 0 3px;
+    }
   }
 }
 
@@ -15,7 +35,11 @@
   justify-content: space-between;
   margin: 16px 0;
   // border-radius: 8px;
-  padding: 0 16px;
+  padding: 0 8px;
+  
+  @media (min-width: 481px) {
+    padding: 0 16px;
+  }
 }
 
 .date-display {
@@ -25,7 +49,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 16px;
+  padding: 0 8px;
+  
+  @media (min-width: 481px) {
+    padding: 0 16px;
+  }
 }
 
 .day-name {
@@ -33,9 +61,17 @@
   font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
   margin-bottom: 4px;
+  
+  @media (max-width: 480px) {
+    font-size: 16px;
+  }
 }
 
 .date {
   font-size: 14px;
   color: rgba(0, 0, 0, 0.6);
+  
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
 }

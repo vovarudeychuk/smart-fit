@@ -35,8 +35,8 @@ import { FoodItem } from '../../models/food-item.model';
   `,
   styles: `
     .day-circle {
-      width: 50px;
-      height: 50px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -115,35 +115,71 @@ import { FoodItem } from '../../models/food-item.model';
           );
         }
       }
+      
+      /* Responsive sizes */
+      @media (min-width: 400px) {
+        width: 40px;
+        height: 40px;
+      }
+      
+      @media (min-width: 480px) {
+        width: 44px;
+        height: 44px;
+      }
+      
+      @media (min-width: 600px) {
+        width: 48px;
+        height: 48px;
+      }
     }
     
     .day-label {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 500;
       text-transform: uppercase;
       line-height: 1;
+      
+      @media (min-width: 480px) {
+        font-size: 16px;
+      }
     }
     
     .check-mark {
       position: absolute;
-      bottom: -6px;
-      right: -6px;
-      width: 22px;
-      height: 22px;
+      bottom: -3px;
+      right: -3px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       background-color: white;
-      border: 2px solid;
+      border: 1.5px solid;
       transition: all 0.3s ease;
       animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       
       mat-icon {
-        font-size: 14px;
-        height: 14px;
-        width: 14px;
-        line-height: 14px;
+        font-size: 10px;
+        height: 10px;
+        width: 10px;
+        line-height: 10px;
+      }
+      
+      /* Responsive sizes */
+      @media (min-width: 480px) {
+        bottom: -4px;
+        right: -4px;
+        width: 18px;
+        height: 18px;
+        border: 2px solid;
+        
+        mat-icon {
+          font-size: 12px;
+          height: 12px;
+          width: 12px;
+          line-height: 12px;
+        }
       }
       
       &.incomplete {
@@ -164,15 +200,15 @@ import { FoodItem } from '../../models/food-item.model';
     
     @keyframes pulse {
       0% {
-        transform: scale(1.5);
+        transform: scale(1.05);
         box-shadow: 0 0 0 0 rgba(103, 58, 183, 0.5);
       }
       70% {
-        transform: scale(2.05);
+        transform: scale(1.1);
         box-shadow: 0 0 0 10px rgba(103, 58, 183, 0);
       }
       100% {
-        transform: scale(1.5);
+        transform: scale(1.05);
         box-shadow: 0 0 0 0 rgba(103, 58, 183, 0);
       }
     }
@@ -216,18 +252,17 @@ export class CircleDayComponent {
   }
   
   getCompletionClass(): string {
-    if (!this.hasFoodItems || this.totalCalories === 0) {
-      return '';
-    }
+    if (!this.hasFoodItems) return '';
     
+    // Calculate percentage of goal reached
     const percentage = (this.totalCalories / this.calorieGoal) * 100;
     
-    if (percentage < 90) {
-      return 'incomplete';
-    } else if (percentage > 110) {
-      return 'excess';
+    if (percentage < 80) {
+      return 'incomplete'; // Less than 80% of goal - orange
+    } else if (percentage <= 120) {
+      return 'complete'; // Between 80% and 120% of goal - green
     } else {
-      return 'complete';
+      return 'excess'; // More than 120% of goal - red
     }
   }
 } 

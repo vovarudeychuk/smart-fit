@@ -18,7 +18,9 @@
   padding: 4px 0;
   transition: background-color 0.2s ease;
   
-  
+  @media (max-width: 480px) {
+    flex-wrap: wrap;
+  }
 }
 
 .drag-handle {
@@ -28,6 +30,10 @@
   
   &:hover {
     opacity: 1;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 4px;
   }
 }
 
@@ -39,20 +45,52 @@
   
   .food-name {
     font-weight: 500;
+    
+    @media (max-width: 480px) {
+      font-size: 14px;
+    }
   }
   
   .food-details {
     font-size: 12px;
     color: rgba(0, 0, 0, 0.6);
+    word-break: break-word;
+    
+    @media (max-width: 480px) {
+      font-size: 11px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    min-width: 60%;
   }
 }
 
 .food-actions {
   opacity: 0.6;
   transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
   
   &:hover {
     opacity: 1;
+  }
+  
+  @media (max-width: 480px) {
+    margin-left: auto;
+    
+    button {
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+      
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        line-height: 18px;
+      }
+    }
   }
 }
 
@@ -86,6 +124,19 @@
   height: 32px;
   border-radius: 50%;
   margin-right: 8px;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    width: 28px;
+    height: 28px;
+    
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      line-height: 16px;
+    }
+  }
   
   &.protein {
     background-color: rgba(76, 175, 80, 0.15);
@@ -116,4 +167,12 @@
 
 .mat-list-item {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* Mobile-specific list styles */
+@media (max-width: 480px) {
+  ::ng-deep .mat-mdc-list-item {
+    height: auto !important;
+    padding: 8px 0 !important;
+  }
 }

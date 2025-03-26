@@ -15,8 +15,7 @@ import { FoodQuantityDialogComponent } from '../shared/dialogs';
   imports: [CommonModule, MatButtonModule, MatIconModule, CircleDayComponent, DragDropModule],
   template: `
   <div class="day-navigator">
-      <button mat-mini-fab 
-              (click)="navigateToPreviousDay()">
+      <button mat-mini-fab class="nav-button" (click)="navigateToPreviousDay()">
         <mat-icon>arrow_back</mat-icon>
       </button>
       
@@ -25,8 +24,7 @@ import { FoodQuantityDialogComponent } from '../shared/dialogs';
         <div class="date">{{ formatDate(currentDay().date) }}</div>
       </div>
       
-      <button mat-mini-fab 
-              (click)="navigateToNextDay()">
+      <button mat-mini-fab class="nav-button" (click)="navigateToNextDay()">
         <mat-icon>arrow_forward</mat-icon>
       </button>
     </div>
@@ -48,9 +46,104 @@ import { FoodQuantityDialogComponent } from '../shared/dialogs';
         </app-circle-day>
       }
     </div>
-    
   `,
-  styleUrl: './day-navigator.component.scss'
+  styles: [`
+    .week-circles {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 8px;
+      margin-bottom: 8px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* Internet Explorer and Edge */
+      
+      &::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, and Opera */
+      }
+      
+      app-circle-day {
+        margin: 0 4px;
+        flex-shrink: 0;
+      }
+      
+      @media (max-width: 480px) {
+        padding: 12px 4px;
+        justify-content: flex-start;
+        
+        app-circle-day {
+          margin: 0 3px;
+        }
+      }
+    }
+    
+    .day-navigator {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 16px 0;
+      padding: 0 8px;
+      
+      @media (max-width: 480px) {
+        margin: 8px 0;
+      }
+      
+      @media (min-width: 481px) {
+        padding: 0 16px;
+      }
+    }
+    
+    .nav-button {
+      @media (max-width: 480px) {
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        
+        ::ng-deep .mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          line-height: 16px;
+        }
+      }
+    }
+    
+    .date-display {
+      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      
+      @media (min-width: 481px) {
+        padding: 0 16px;
+      }
+    }
+    
+    .day-name {
+      font-size: 18px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.87);
+      margin-bottom: 4px;
+      
+      @media (max-width: 480px) {
+        font-size: 16px;
+        margin-bottom: 2px;
+      }
+    }
+    
+    .date {
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.6);
+      
+      @media (max-width: 480px) {
+        font-size: 12px;
+      }
+    }
+  `]
 })
 export class DayNavigatorComponent implements OnInit {
   private nutritionService = inject(NutritionService);

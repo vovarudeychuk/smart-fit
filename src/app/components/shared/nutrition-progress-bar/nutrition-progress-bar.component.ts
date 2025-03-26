@@ -8,12 +8,16 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [CommonModule, MatIconModule],
   template: `
     <div class="progress-item">
-      <div class="progress-label">
-        <span class="label-with-icon">
-          <mat-icon [ngClass]="color" class="nutrient-icon">{{getNutrientIcon()}}</mat-icon>
-          {{ label }}
+      <div class="progress-header">
+        <div class="label-with-icon">
+          <div [ngClass]="color" class="nutrient-icon-container">
+            <mat-icon class="nutrient-icon">{{getNutrientIcon()}}</mat-icon>
+          </div>
+          <span class="label">{{ label }}</span>
+        </div>
+        <span class="value-display">
+          <span class="current-value">{{ currentValue | number:'1.0-1' }}</span> / {{ goalValue }} {{ unit }}
         </span>
-        <span>{{ currentValue | number:'1.0-1' }} / {{ goalValue }} {{ unit }}</span>
       </div>
       
       <div class="meter">
@@ -45,15 +49,23 @@ import { MatIconModule } from '@angular/material/icon';
   `,
   styles: `
     .progress-item {
-      margin-bottom: 8px;
+      margin-bottom: 16px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     }
     
-    .progress-label {
+    .progress-header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
       font-size: 14px;
       align-items: center;
+      
+      @media (max-width: 480px) {
+        font-size: 12px;
+      }
     }
     
     .label-with-icon {
@@ -61,45 +73,94 @@ import { MatIconModule } from '@angular/material/icon';
       align-items: center;
     }
     
-    .nutrient-icon {
-      font-size: 18px;
-      height: 18px;
-      width: 18px;
-      margin-right: 4px;
-      border-radius: 50%;
-      padding: 2px;
+    .label {
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.87);
+    }
+    
+    .value-display {
+      color: rgba(0, 0, 0, 0.6);
+      
+      .current-value {
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.87);
+      }
+      
+      @media (max-width: 480px) {
+        font-size: 11px;
+      }
+    }
+    
+    .nutrient-icon-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      margin-right: 8px;
+      
+      @media (max-width: 480px) {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+      }
       
       &.ccal {
         background-color: rgba(156, 39, 176, 0.1);
-        color: #9c27b0;
       }
       
       &.protein {
         background-color: rgba(76, 175, 80, 0.1);
-        color: #4caf50;
       }
       
       &.carbs {
         background-color: rgba(33, 150, 243, 0.1);
-        color: #2196f3;
       }
       
       &.fat {
         background-color: rgba(255, 152, 0, 0.1);
+      }
+    }
+    
+    .nutrient-icon {
+      font-size: 16px;
+      height: 16px;
+      width: 16px;
+      
+      @media (max-width: 480px) {
+        font-size: 14px;
+        height: 14px;
+        width: 14px;
+      }
+      
+      &.ccal {
+        color: #9c27b0;
+      }
+      
+      &.protein {
+        color: #4caf50;
+      }
+      
+      &.carbs {
+        color: #2196f3;
+      }
+      
+      &.fat {
         color: #ff9800;
       }
     }
     
-    .progress-label span {
-      color: rgba(0, 0, 0, 0.87);
-    }
-    
     .meter {
-      height: 8px;
-      background: rgba(0, 0, 0, 0.12);
-      border-radius: 4px;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
       overflow: hidden;
-      margin-bottom: 4px;
+      
+      @media (max-width: 480px) {
+        height: 8px;
+        border-radius: 4px;
+      }
     }
     
     .progress-segments {
@@ -109,7 +170,7 @@ import { MatIconModule } from '@angular/material/icon';
     }
     
     .animate-width {
-      transition: width 0.6s ease-out;
+      transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
     
     .normal-segment {
@@ -129,33 +190,46 @@ import { MatIconModule } from '@angular/material/icon';
       
       &.ccal {
         background-color: #9c27b0;
+        background-image: linear-gradient(45deg, #9c27b0, #ce93d8);
       }
       
       &.protein {
         background-color: #4caf50;
+        background-image: linear-gradient(45deg, #4caf50, #81c784);
       }
       
       &.carbs {
         background-color: #2196f3;
+        background-image: linear-gradient(45deg, #2196f3, #90caf9);
       } 
       
       &.fat {
         background-color: #ff9800;
+        background-image: linear-gradient(45deg, #ff9800, #ffcc80);
       }
       
       &:first-child {
-        border-top-left-radius: 4px;
-        border-bottom-left-radius: 4px;
+        border-top-left-radius: 6px;
+        border-bottom-left-radius: 6px;
+        
+        @media (max-width: 480px) {
+          border-radius: 4px;
+        }
       }
     }
   
     .excess-segment {
       height: 100%;
       background-color: #f44336;
+      background-image: linear-gradient(45deg, #f44336, #ef9a9a);
       
       &:last-child {
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px;
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
+        
+        @media (max-width: 480px) {
+          border-radius: 4px;
+        }
       }
     }
     
@@ -163,8 +237,12 @@ import { MatIconModule } from '@angular/material/icon';
       height: 100%;
       
       &:last-child {
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px;
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
+        
+        @media (max-width: 480px) {
+          border-radius: 4px;
+        }
       }
     }
   `
