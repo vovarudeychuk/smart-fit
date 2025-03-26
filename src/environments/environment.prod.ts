@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.yournutritionapp.com' // Replace with production API URL
+  apiUrl: 'https://your-backend-api-url.com' // Replace with your actual backend URL
 }; 
