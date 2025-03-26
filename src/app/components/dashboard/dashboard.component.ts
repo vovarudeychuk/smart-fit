@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,10 +7,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { NutritionService } from '../../services/nutrition.service';
 import { DayNavigatorComponent } from '../day-navigator/day-navigator.component';
 import { FoodListComponent } from '../food-list/food-list.component';
-import { FoodSearchComponent } from '../food-search/food-search.component';
 import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/nutrition-progress-bar.component';
-import { ApiStatusComponent } from '../shared/status-indicator';
-
 
 @Component({
   selector: 'app-dashboard',
@@ -23,13 +20,10 @@ import { ApiStatusComponent } from '../shared/status-indicator';
     MatDividerModule,
     DayNavigatorComponent,
     FoodListComponent,
-    FoodSearchComponent,
-    NutritionProgressBarComponent,
-    ApiStatusComponent
+    NutritionProgressBarComponent
 ],
   template: `
     <div class="dashboard-container">
-    <app-api-status></app-api-status>
       <mat-card>
         <mat-card-content>
           <app-day-navigator></app-day-navigator>
@@ -79,16 +73,13 @@ import { ApiStatusComponent } from '../shared/status-indicator';
           
           <h3>Today's Food</h3>
           <app-food-list></app-food-list>
-          
-          <mat-divider class="divider"></mat-divider>
-          <app-food-search></app-food-search>
         </mat-card-content>
       </mat-card>
     </div>
   `,
   styleUrl: './dashboard.component.scss'
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   private nutritionService = inject(NutritionService);
   
   // Get reference to current day data
@@ -99,4 +90,8 @@ export class DashboardComponent {
   proteinGoal = this.nutritionService.getProteinGoal();
   carbsGoal = this.nutritionService.getCarbsGoal();
   fatGoal = this.nutritionService.getFatGoal();
+  
+  ngOnInit(): void {
+    // No initialization needed
+  }
 } 

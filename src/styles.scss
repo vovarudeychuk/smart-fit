@@ -119,3 +119,18 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 .food-option .food-details {
   color: rgba(0, 0, 0, 0.6) !important;
 }
+
+// Custom styles for warning snackbar
+.warning-snackbar {
+  --mdc-snackbar-container-color: #ff9800 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+  
+  .mat-mdc-button {
+    color: white !important;
+  }
+  
+  .mdc-snackbar__label {
+    font-weight: 500;
+    color: white;
+  }
+}
