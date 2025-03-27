@@ -39,6 +39,7 @@ export class FoodQuantityDialogComponent implements OnInit {
   quantity: number = 1;
   servingSize: number = 100;
   baseServingSize: number = 100;
+  isEditMode: boolean = false;
   
   // Calculated totals
   totalCalories: number = 0;
@@ -62,11 +63,13 @@ export class FoodQuantityDialogComponent implements OnInit {
     // If food already has a quantity (editing mode)
     if (data.initialQuantity) {
       this.quantity = data.initialQuantity;
+      this.isEditMode = true;
     }
     
     // If initial serving size is provided
     if (data.initialServingSize) {
       this.servingSize = data.initialServingSize;
+      this.isEditMode = true;
     }
     
     this.updateTotals();
@@ -89,6 +92,16 @@ export class FoodQuantityDialogComponent implements OnInit {
   saveFood(): void {
     // Create a copy of the food with adjusted quantity
     const adjustedFood = { ...this.food };
+    
+    // Update the serving size format on the food item
+    adjustedFood.servingSize = `${this.quantity} x ${this.servingSize}g`;
+    
+    // Update the nutrition values based on the quantity and serving size
+    const ratio = this.servingSize / this.baseServingSize * this.quantity;
+    adjustedFood.calories = this.totalCalories;
+    adjustedFood.protein = this.totalProtein;
+    adjustedFood.carbs = this.totalCarbs;
+    adjustedFood.fat = this.totalFat;
     
     // Return the result
     const result: FoodQuantityResult = {

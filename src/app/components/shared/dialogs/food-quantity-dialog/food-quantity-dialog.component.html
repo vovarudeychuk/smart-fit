@@ -102,7 +102,7 @@
   <mat-dialog-actions>
     <button mat-button class="cancel-button" (click)="cancelDialog()">Cancel</button>
     <button mat-flat-button color="primary" class="save-button" (click)="saveFood()">
-      Add to Log
+      {{ isEditMode ? 'Update' : 'Add to Log' }}
     </button>
   </mat-dialog-actions>
 </div> 
