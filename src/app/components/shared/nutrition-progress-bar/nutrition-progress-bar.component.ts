@@ -54,6 +54,10 @@ import { MatIconModule } from '@angular/material/icon';
       border-radius: 12px;
       padding: 12px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      
+      @media (min-width: 1200px) {
+        padding: 14px;
+      }
     }
     
     .progress-header {
@@ -65,6 +69,10 @@ import { MatIconModule } from '@angular/material/icon';
       
       @media (max-width: 480px) {
         font-size: 12px;
+      }
+      
+      @media (min-width: 1200px) {
+        font-size: 15px;
       }
     }
     
@@ -106,6 +114,11 @@ import { MatIconModule } from '@angular/material/icon';
         border-radius: 6px;
       }
       
+      @media (min-width: 1200px) {
+        width: 30px;
+        height: 30px;
+      }
+      
       &.ccal {
         background-color: rgba(156, 39, 176, 0.1);
       }
@@ -134,6 +147,12 @@ import { MatIconModule } from '@angular/material/icon';
         width: 14px;
       }
       
+      @media (min-width: 1200px) {
+        font-size: 18px;
+        height: 18px;
+        width: 18px;
+      }
+      
       &.ccal {
         color: #9c27b0;
       }
@@ -160,6 +179,10 @@ import { MatIconModule } from '@angular/material/icon';
       @media (max-width: 480px) {
         height: 8px;
         border-radius: 4px;
+      }
+      
+      @media (min-width: 1200px) {
+        height: 12px;
       }
     }
     

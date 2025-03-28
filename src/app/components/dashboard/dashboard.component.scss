@@ -110,11 +110,11 @@ mat-card-subtitle {
   
   @media (min-width: 768px) {
     grid-template-columns: repeat(1, 1fr);
-    gap: 16px;
+    gap: 12px;
   }
 
-  @media (min-width: 1200px) {
-    grid-template-columns: repeat(2, 1fr);
+  @media (min-width: 1400px) {
+    gap: 14px;
   }
 }
 
@@ -269,6 +269,20 @@ mat-card {
     
     p {
       font-size: 13px;
+    }
+  }
+}
+
+/* Specific styling for Daily Progress card */
+.side-column mat-card:first-child {
+  @media (min-width: 1200px) {
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.09) !important;
+  }
+  
+  &:hover {
+    @media (min-width: 1200px) {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12) !important;
     }
   }
 } 
