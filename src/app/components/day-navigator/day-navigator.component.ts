@@ -3,25 +3,53 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatNativeDateModule, DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { NutritionService } from '../../services/nutrition.service';
 import { CircleDayComponent } from '../circle-day/circle-day.component';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { FoodItem } from '../../models/food-item.model';
-import { FoodQuantityDialogComponent } from '../shared/dialogs';
+import { FoodQuantityDialogComponent, FoodMoveCopyDialogComponent } from '../shared/dialogs';
 
 @Component({
   selector: 'app-day-navigator',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, CircleDayComponent, DragDropModule],
+  imports: [
+    CommonModule, 
+    MatButtonModule, 
+    MatIconModule, 
+    CircleDayComponent, 
+    DragDropModule,
+    MatDatepickerModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatNativeDateModule,
+    ReactiveFormsModule,
+    FormsModule
+  ],
   template: `
   <div class="day-navigator">
       <button mat-mini-fab class="nav-button" (click)="navigateToPreviousDay()">
         <mat-icon>arrow_back</mat-icon>
       </button>
       
-      <div class="date-display">
+      <div class="date-display" (click)="datepicker.open()">
         <div class="day-name">{{ formatDayName(currentDay().date) }}</div>
-        <div class="date">{{ formatDate(currentDay().date) }}</div>
+        <div class="date-container">
+          <div class="date">{{ formatDate(currentDay().date) }}</div>
+          <mat-icon class="calendar-icon">calendar_today</mat-icon>
+        </div>
+        
+        <!-- Hidden datepicker input -->
+        <mat-form-field appearance="fill" class="hidden-datepicker">
+          <input matInput [matDatepicker]="datepicker" 
+                 [value]="currentDay().date"
+                 (dateChange)="onDateSelected($event)">
+          <mat-datepicker #datepicker></mat-datepicker>
+        </mat-form-field>
       </div>
       
       <button mat-mini-fab class="nav-button" (click)="navigateToNextDay()">
@@ -117,10 +145,40 @@ import { FoodQuantityDialogComponent } from '../shared/dialogs';
       align-items: center;
       justify-content: center;
       padding: 0 8px;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.2s ease;
+      border-radius: 8px;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
       
       @media (min-width: 481px) {
         padding: 0 16px;
       }
+    }
+    
+    .date-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    .calendar-icon {
+      font-size: 16px;
+      height: 16px;
+      width: 16px;
+      color: rgba(0, 0, 0, 0.54);
+    }
+    
+    .hidden-datepicker {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      overflow: hidden;
     }
     
     .day-name {
@@ -187,6 +245,42 @@ export class DayNavigatorComponent implements OnInit {
     }
   }
   
+  onDateSelected(event: any): void {
+    const selectedDate = new Date(event.value);
+    console.log('Date selected:', selectedDate);
+    
+    // Show loading state if needed
+    // this.isLoading = true;
+    
+    // Navigate to the selected date
+    this.navigateToSelectedDate(selectedDate);
+  }
+  
+  navigateToSelectedDate(date: Date): void {
+    console.log('Day navigator - Navigating to selected date:', date);
+    
+    // Navigate to the week containing the selected date
+    // The NutritionService will handle finding the correct day index
+    this.nutritionService.navigateToWeekContaining(date);
+  }
+  
+  private getTodayIndex(): number {
+    const days = this.getAllDays();
+    const today = new Date();
+    
+    // Find today's index
+    const todayIndex = days.findIndex(day => this.isToday(new Date(day.date)));
+    return todayIndex !== -1 ? todayIndex : 0; // Default to first day if not found
+  }
+  
+  private isSameDay(date1: Date, date2: Date): boolean {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1.getFullYear() === d2.getFullYear() && 
+           d1.getMonth() === d2.getMonth() && 
+           d1.getDate() === d2.getDate();
+  }
+  
   getCurrentDayIndex(): number {
     return this.nutritionService.getCurrentDayIndex();
   }
@@ -240,49 +334,131 @@ export class DayNavigatorComponent implements OnInit {
       const foodItem = event.item.data as FoodItem;
       console.log('Food dropped on day', dayIndex, foodItem);
       
-      // Navigate to the target day
-      this.navigateToDay(dayIndex);
+      // Get the current day for comparison
+      const currentDate = this.nutritionService.getCurrentDay().date;
       
-      // Extract quantity and serving size from the original food item
-      let quantity = 1;
-      let servingSize = 100;
+      // Get the target day's date
+      const targetDay = this.nutritionService.getAllDays()[dayIndex];
+      const targetDate = new Date(targetDay.date);
       
-      if (foodItem.servingSize) {
-        const servingSizeMatch = foodItem.servingSize.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+)g$/);
-        if (servingSizeMatch) {
-          quantity = parseFloat(servingSizeMatch[1]);
-          servingSize = parseInt(servingSizeMatch[2], 10);
+      // Check if the target day is different from the current day
+      if (!this.isSameDay(currentDate, targetDate)) {
+        // If dropping on a different day, directly show the move/copy dialog
+        const moveOrCopyDialogRef = this.dialog.open(FoodMoveCopyDialogComponent, {
+          width: '450px',
+          maxWidth: '95vw',
+          data: {
+            foodName: foodItem.name,
+            fromDate: new Date(currentDate),
+            toDate: targetDate
+          }
+        });
+        
+        moveOrCopyDialogRef.afterClosed().subscribe(action => {
+          if (action === 'move' || action === 'copy') {
+            // Move or copy operation
+            console.log(`Day navigator - User chose to ${action} the food`);
+            
+            // Extract quantity and serving size from the original food item
+            let quantity = 1;
+            let servingSize = 100;
+            
+            if (foodItem.servingSize) {
+              const servingSizeMatch = foodItem.servingSize.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+)g$/);
+              if (servingSizeMatch) {
+                quantity = parseFloat(servingSizeMatch[1]);
+                servingSize = parseInt(servingSizeMatch[2], 10);
+              }
+            }
+            
+            // Create a base food item with standardized values
+            const baseFood: FoodItem = {
+              ...foodItem,
+              // Create a new ID to avoid conflicts
+              id: Date.now(),
+              calories: foodItem.calories / (quantity * (servingSize / 100)),
+              protein: foodItem.protein / (quantity * (servingSize / 100)),
+              carbs: foodItem.carbs / (quantity * (servingSize / 100)),
+              fat: foodItem.fat / (quantity * (servingSize / 100)),
+              servingSize: '100g' // Reset to standard serving
+            };
+            
+            // Open food quantity dialog with the target date
+            const dialogRef = this.dialog.open(FoodQuantityDialogComponent, {
+              width: '400px',
+              data: { 
+                food: baseFood,
+                initialQuantity: quantity,
+                initialServingSize: servingSize,
+                targetDate: targetDate
+              }
+            });
+            
+            // When dialog closes, add the food if user confirmed
+            dialogRef.afterClosed().subscribe(result => {
+              if (result) {
+                // If it's a move operation, remove from the original day
+                if (action === 'move') {
+                  this.nutritionService.deleteFoodItem(foodItem.id.toString());
+                }
+                
+                // Navigate to the target date
+                this.nutritionService.navigateToWeekContaining(targetDate);
+                
+                // Wait for navigation to complete before adding
+                setTimeout(() => {
+                  this.nutritionService.addFoodItem(result.food);
+                }, 150);
+              }
+            });
+          }
+          // If canceled, do nothing
+        });
+      } else {
+        // If dropping on the same day, just show the quantity dialog
+        
+        // Extract quantity and serving size from the original food item
+        let quantity = 1;
+        let servingSize = 100;
+        
+        if (foodItem.servingSize) {
+          const servingSizeMatch = foodItem.servingSize.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+)g$/);
+          if (servingSizeMatch) {
+            quantity = parseFloat(servingSizeMatch[1]);
+            servingSize = parseInt(servingSizeMatch[2], 10);
+          }
         }
+        
+        // Create a base food item with standardized values
+        const baseFood: FoodItem = {
+          ...foodItem,
+          // Create a new ID to avoid conflicts
+          id: Date.now(),
+          calories: foodItem.calories / (quantity * (servingSize / 100)),
+          protein: foodItem.protein / (quantity * (servingSize / 100)),
+          carbs: foodItem.carbs / (quantity * (servingSize / 100)),
+          fat: foodItem.fat / (quantity * (servingSize / 100)),
+          servingSize: '100g' // Reset to standard serving
+        };
+        
+        // Open food quantity dialog
+        const dialogRef = this.dialog.open(FoodQuantityDialogComponent, {
+          width: '400px',
+          data: { 
+            food: baseFood,
+            initialQuantity: quantity,
+            initialServingSize: servingSize,
+            targetDate: targetDate
+          }
+        });
+        
+        // When dialog closes, add the food if user confirmed
+        dialogRef.afterClosed().subscribe(result => {
+          if (result) {
+            this.nutritionService.addFoodItem(result.food);
+          }
+        });
       }
-      
-      // Create a base food item with standardized values
-      const baseFood: FoodItem = {
-        ...foodItem,
-        // Create a new ID to avoid conflicts - make sure it's a number or string based on your model
-        id: Date.now(),
-        calories: foodItem.calories / (quantity * (servingSize / 100)),
-        protein: foodItem.protein / (quantity * (servingSize / 100)),
-        carbs: foodItem.carbs / (quantity * (servingSize / 100)),
-        fat: foodItem.fat / (quantity * (servingSize / 100)),
-        servingSize: '100g' // Reset to standard serving
-      };
-      
-      // Open food quantity dialog to let user adjust quantity
-      const dialogRef = this.dialog.open(FoodQuantityDialogComponent, {
-        width: '400px',
-        data: { 
-          food: baseFood,
-          initialQuantity: quantity,
-          initialServingSize: servingSize
-        }
-      });
-      
-      // When dialog closes, add the food if user confirmed
-      dialogRef.afterClosed().subscribe(result => {
-        if (result) {
-          this.nutritionService.addFoodItem(result.food);
-        }
-      });
     } else {
       console.error('Invalid or missing food item data in the dragged item', event);
     }

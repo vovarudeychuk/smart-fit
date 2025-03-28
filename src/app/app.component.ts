@@ -7,9 +7,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { AuthService } from './services/auth.service';
 import { FoodSearchDialogComponent } from './components/shared/dialogs/food-search-dialog/food-search-dialog.component';
-import { FoodQuantityDialogComponent } from './components/shared/dialogs/food-quantity-dialog/food-quantity-dialog.component';
+import { FoodQuantityDialogComponent, FoodMoveCopyDialogComponent } from './components/shared/dialogs';
 import { NutritionService } from './services/nutrition.service';
 
 @Component({
@@ -25,7 +27,9 @@ import { NutritionService } from './services/nutrition.service';
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   template: `
     <div class="app-container">
@@ -257,17 +261,66 @@ export class AppComponent implements OnInit {
   }
 
   openFoodQuantityDialog(food: any) {
+    // Use current date as default target date
+    const currentDate = this.nutritionService.getCurrentDay().date;
+    
     const dialogRef = this.dialog.open(FoodQuantityDialogComponent, {
       width: '90%',
       maxWidth: '450px',
-      data: { food },
+      data: { 
+        food,
+        targetDate: new Date(currentDate)
+      },
       panelClass: ['quantity-dialog', 'mat-elevation-z8']
     });
     
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.nutritionService.addFoodItem(result.food);
+        console.log('App component - Food quantity dialog result:', result);
+        
+        // If a specific date was selected, navigate to that date and add the food
+        if (result.targetDate && !this.isSameDay(result.targetDate, currentDate)) {
+          // Show the move/copy dialog to let the user decide
+          const moveOrCopyDialogRef = this.dialog.open(FoodMoveCopyDialogComponent, {
+            width: '450px',
+            maxWidth: '95vw',
+            data: {
+              foodName: result.food.name,
+              fromDate: new Date(currentDate),
+              toDate: new Date(result.targetDate)
+            }
+          });
+          
+          moveOrCopyDialogRef.afterClosed().subscribe(action => {
+            if (action === 'move' || action === 'copy') {
+              // Both move and copy are the same for a newly added item
+              // since it hasn't been added to any day yet
+              console.log(`App component - User chose to ${action} the food`);
+              
+              // Navigate to the selected date
+              this.nutritionService.navigateToWeekContaining(result.targetDate);
+              
+              // Wait for navigation to complete before adding
+              setTimeout(() => {
+                this.nutritionService.addFoodItem(result.food);
+              }, 150);
+            }
+            // If canceled, do nothing
+          });
+        } else {
+          // Just add to current day
+          this.nutritionService.addFoodItem(result.food);
+        }
       }
     });
+  }
+  
+  // Helper method to check if two dates are the same day
+  private isSameDay(date1: Date, date2: Date): boolean {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
   }
 }

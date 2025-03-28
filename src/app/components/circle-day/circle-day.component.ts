@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDropList, CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { FoodItem } from '../../models/food-item.model';
 
 @Component({
@@ -18,12 +18,12 @@ import { FoodItem } from '../../models/food-item.model';
       [class.drop-target]="isDragOver"
       cdkDropList
       id="day-{{ dayIndex }}"
-      [cdkDropListData]="{dayIndex: dayIndex, date: date}"
+      [cdkDropListData]="dayIndex"
       [cdkDropListConnectedTo]="['food-list']"
-      (cdkDropListDropped)="onDropped($event)"
+      (cdkDropListDropped)="onDrop($event)"
       (cdkDropListEntered)="isDragOver = true"
       (cdkDropListExited)="isDragOver = false"
-      (click)="daySelected.emit()">
+      (click)="selectDay()">
       <div class="day-label">{{ getDayLabel() }}</div>
       
       @if (isPast && hasFoodItems) {
@@ -233,22 +233,26 @@ export class CircleDayComponent {
   @Input() isPast: boolean = false;
   @Input() isFuture: boolean = false;
   @Input() totalCalories: number = 0;
-  @Input() calorieGoal: number = 0;
+  @Input() calorieGoal: number = 2000;
   @Input() hasFoodItems: boolean = false;
   @Input() dayIndex: number = 0;
+  
   @Output() daySelected = new EventEmitter<void>();
-  @Output() onFoodDrop = new EventEmitter<any>();
+  @Output() onFoodDrop = new EventEmitter<CdkDragDrop<any>>();
   
   isDragOver = false;
   
-  // Added a method to emit the event and reset isDragOver
-  onDropped(event: any): void {
-    this.onFoodDrop.emit(event);
-    this.isDragOver = false; // Make sure we reset the drop-target style
-  }
-  
   getDayLabel(): string {
     return new Date(this.date).toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
+  }
+  
+  selectDay(): void {
+    this.daySelected.emit();
+  }
+  
+  onDrop(event: CdkDragDrop<any>): void {
+    this.isDragOver = false; // Reset the drop-target style
+    this.onFoodDrop.emit(event);
   }
   
   getCompletionClass(): string {

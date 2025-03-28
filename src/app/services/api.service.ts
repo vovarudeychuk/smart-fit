@@ -180,8 +180,22 @@ export class ApiService {
   }
 
   // Update a food item for a specific day
-  updateFoodInDay(dayIndex: number, foodItemId: number, updatedFood: FoodItem): Observable<any> {
-    return this.http.put(`${this.baseUrl}/nutrition/day/${dayIndex}/foods/${foodItemId}`, updatedFood)
+  updateFoodInDay(dayIndex: number, foodItemId: number, updatedFood: FoodItem, weekStartDate?: string): Observable<any> {
+    let url = `${this.baseUrl}/nutrition/day/${dayIndex}/foods/${foodItemId}`;
+    
+    // If a specific week is requested, add it as a query param
+    if (weekStartDate) {
+      const params = new HttpParams().set('weekStartDate', weekStartDate);
+      return this.http.put(url, updatedFood, { params })
+        .pipe(
+          catchError(error => {
+            console.error('Error updating food item:', error);
+            return of(null);
+          })
+        );
+    }
+    
+    return this.http.put(url, updatedFood)
       .pipe(
         catchError(error => {
           console.error('Error updating food item:', error);
@@ -191,8 +205,22 @@ export class ApiService {
   }
 
   // Delete a food item from a specific day
-  deleteFoodFromDay(dayIndex: number, foodItemId: number): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/nutrition/day/${dayIndex}/foods/${foodItemId}`)
+  deleteFoodFromDay(dayIndex: number, foodItemId: number, weekStartDate?: string): Observable<any> {
+    let url = `${this.baseUrl}/nutrition/day/${dayIndex}/foods/${foodItemId}`;
+    
+    // If a specific week is requested, add it as a query param
+    if (weekStartDate) {
+      const params = new HttpParams().set('weekStartDate', weekStartDate);
+      return this.http.delete(url, { params })
+        .pipe(
+          catchError(error => {
+            console.error('Error deleting food item:', error);
+            return of(null);
+          })
+        );
+    }
+    
+    return this.http.delete(url)
       .pipe(
         catchError(error => {
           console.error('Error deleting food item:', error);
@@ -202,15 +230,28 @@ export class ApiService {
   }
 
   // Move food item between days
-  moveFoodBetweenDays(sourceDayIndex: number, targetDayIndex: number, foodItemId: number): Observable<any> {
-    return this.http.post(
-      `${this.baseUrl}/nutrition/move-food`, 
-      { sourceDayIndex, targetDayIndex, foodItemId }
-    ).pipe(
-      catchError(error => {
-        console.error('Error moving food item:', error);
-        return of(null);
-      })
-    );
+  moveFoodBetweenDays(sourceDayIndex: number, targetDayIndex: number, foodItemId: number, weekStartDate?: string): Observable<any> {
+    let url = `${this.baseUrl}/nutrition/move-food`;
+    const body = { sourceDayIndex, targetDayIndex, foodItemId };
+    
+    // If a specific week is requested, add it as a query param
+    if (weekStartDate) {
+      const params = new HttpParams().set('weekStartDate', weekStartDate);
+      return this.http.post(url, body, { params })
+        .pipe(
+          catchError(error => {
+            console.error('Error moving food item:', error);
+            return of(null);
+          })
+        );
+    }
+    
+    return this.http.post(url, body)
+      .pipe(
+        catchError(error => {
+          console.error('Error moving food item:', error);
+          return of(null);
+        })
+      );
   }
 } 

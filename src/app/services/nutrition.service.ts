@@ -258,8 +258,11 @@ export class NutritionService {
     // Store the updated data for this week
     this.saveCurrentWeekData();
     
+    // Get the current week start date for API call
+    const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
+    
     // Send to the server
-    this.apiService.addFoodToDay(dayIndex, foodItem).pipe(
+    this.apiService.addFoodToDay(dayIndex, foodItem, weekStartDateStr).pipe(
       tap(response => {
         console.log('Food item added on server:', response);
       }),
@@ -324,8 +327,11 @@ export class NutritionService {
       // Update UI state
       this.weeklyNutrition.set(updatedNutrition);
       
+      // Get the current week start date for API call
+      const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
+      
       // Send to server
-      this.apiService.updateFoodInDay(currentDayIndex, parseInt(foodItemId), updatedFood).pipe(
+      this.apiService.updateFoodInDay(currentDayIndex, parseInt(foodItemId), updatedFood, weekStartDateStr).pipe(
         tap(response => {
           console.log('Food item updated on server:', response);
         }),
@@ -360,8 +366,11 @@ export class NutritionService {
       // Update UI
       this.weeklyNutrition.set(updatedNutrition);
       
+      // Get the current week start date for API call
+      const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
+      
       // Send to server
-      this.apiService.deleteFoodFromDay(currentDayIndex, parseInt(foodItemId)).pipe(
+      this.apiService.deleteFoodFromDay(currentDayIndex, parseInt(foodItemId), weekStartDateStr).pipe(
         tap(response => {
           console.log('Food item deleted on server:', response);
         }),
@@ -494,8 +503,11 @@ export class NutritionService {
     // Update UI
     this.weeklyNutrition.set(updatedNutrition);
     
+    // Get the current week start date for API call
+    const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
+    
     // Send to server
-    this.apiService.moveFoodBetweenDays(sourceDayIndex, targetDayIndex, foodItemId).pipe(
+    this.apiService.moveFoodBetweenDays(sourceDayIndex, targetDayIndex, foodItemId, weekStartDateStr).pipe(
       tap(response => {
         console.log('Food item moved on server:', response);
       }),
@@ -613,5 +625,44 @@ export class NutritionService {
   private getWeekKey(date: Date): string {
     const weekStart = startOfWeek(date);
     return format(weekStart, 'yyyy-MM-dd');
+  }
+  
+  // Navigate to the week containing the given date
+  navigateToWeekContaining(date: Date): void {
+    console.log('Navigating to week containing date:', date);
+    
+    // Save current week data before navigating
+    this.saveCurrentWeekData();
+    
+    // Set the current week date to the provided date
+    this.currentWeekDate.set(new Date(date));
+    
+    // Load the nutrition data for the week containing this date
+    this.loadWeeklyNutrition();
+    
+    // After loading the week data, find and navigate to the specific day
+    setTimeout(() => {
+      // Get the days of this week
+      const daysInWeek = this.getAllDays();
+      
+      // Find the day index that matches our target date
+      const targetDayIndex = daysInWeek.findIndex(day => {
+        return this.isSameDay(new Date(day.date), date);
+      });
+      
+      console.log('Found target day index:', targetDayIndex);
+      
+      // If we found a matching day, navigate to it
+      if (targetDayIndex !== -1) {
+        this.navigateToDay(targetDayIndex);
+      }
+    }, 100); // Short delay to ensure week data is loaded
+  }
+  
+  // Helper to check if two dates are the same day
+  private isSameDay(date1: Date, date2: Date): boolean {
+    return date1.getFullYear() === date2.getFullYear() && 
+           date1.getMonth() === date2.getMonth() && 
+           date1.getDate() === date2.getDate();
   }
 } 

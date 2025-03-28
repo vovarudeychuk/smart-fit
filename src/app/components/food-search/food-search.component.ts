@@ -7,7 +7,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { NutritionService } from '../../services/nutrition.service';
 import { FoodSearchDialogComponent } from '../shared/dialogs/food-search-dialog/food-search-dialog.component';
-import { FoodQuantityDialogComponent } from '../shared/dialogs/food-quantity-dialog/food-quantity-dialog.component';
+import { FoodQuantityDialogComponent, FoodMoveCopyDialogComponent } from '../shared/dialogs';
 
 @Component({
   selector: 'app-food-search',
@@ -99,17 +99,64 @@ export class FoodSearchComponent {
   }
   
   openFoodQuantityDialog(food: any) {
+    // Use current date as default target date
+    const currentDate = this.nutritionService.getCurrentDay().date;
+    
     const dialogRef = this.dialog.open(FoodQuantityDialogComponent, {
       width: '90%',
       maxWidth: '450px',
-      data: { food },
+      data: { 
+        food,
+        targetDate: new Date(currentDate)
+      },
       panelClass: ['quantity-dialog', 'mat-elevation-z8']
     });
     
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.nutritionService.addFoodItem(result.food);
+        console.log('Food search - Food quantity dialog result:', result);
+        
+        // If a specific date was selected, navigate to that date and add the food
+        if (result.targetDate && !this.isSameDay(new Date(currentDate), new Date(result.targetDate))) {
+          // Show the move/copy dialog to let the user decide
+          const moveOrCopyDialogRef = this.dialog.open(FoodMoveCopyDialogComponent, {
+            width: '450px',
+            maxWidth: '95vw',
+            data: {
+              foodName: result.food.name,
+              fromDate: new Date(currentDate),
+              toDate: new Date(result.targetDate)
+            }
+          });
+          
+          moveOrCopyDialogRef.afterClosed().subscribe(action => {
+            if (action === 'move' || action === 'copy') {
+              // Both move and copy are the same for a newly added item
+              // since it hasn't been added to any day yet
+              console.log(`Food search - User chose to ${action} the food`);
+              
+              // Navigate to the selected date
+              this.nutritionService.navigateToWeekContaining(result.targetDate);
+              
+              // Wait for navigation to complete before adding
+              setTimeout(() => {
+                this.nutritionService.addFoodItem(result.food);
+              }, 150);
+            }
+            // If canceled, do nothing
+          });
+        } else {
+          // Just add to current day
+          this.nutritionService.addFoodItem(result.food);
+        }
       }
     });
+  }
+  
+  // Helper method to check if two dates are the same day
+  private isSameDay(date1: Date, date2: Date): boolean {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
   }
 } 

@@ -12,66 +12,57 @@
   box-sizing: border-box; 
   overflow-x: hidden;
   font-family: 'Roboto', sans-serif;
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
 }
 
 .dialog-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 16px 16px 20px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .header-content {
   display: flex;
   align-items: center;
+  gap: 16px;
 }
 
 .food-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  margin-right: 16px;
   
   &.protein {
-    background-color: rgba(76, 175, 80, 0.12);
-    
-    mat-icon {
-      color: #4caf50;
-    }
+    background-color: rgba(102, 187, 106, 0.2);
+    color: #388e3c;
   }
   
   &.carbs {
-    background-color: rgba(33, 150, 243, 0.12);
-    
-    mat-icon {
-      color: #2196f3;
-    }
+    background-color: rgba(255, 167, 38, 0.2);
+    color: #f57c00;
   }
   
   &.fat {
-    background-color: rgba(255, 152, 0, 0.12);
-    
-    mat-icon {
-      color: #ff9800;
-    }
+    background-color: rgba(41, 182, 246, 0.2);
+    color: #0288d1;
   }
   
   &.mixed {
-    background-color: rgba(156, 39, 176, 0.12);
-    
-    mat-icon {
-      color: #9c27b0;
-    }
+    background-color: rgba(156, 39, 176, 0.2);
+    color: #7b1fa2;
   }
   
   mat-icon {
     font-size: 24px;
-    height: 24px;
     width: 24px;
+    height: 24px;
   }
 }
 
@@ -82,21 +73,17 @@
 
 .title {
   margin: 0;
-  padding: 0;
   font-size: 20px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.87);
-  line-height: 1.2;
 }
 
 .subtitle {
-  font-size: 14px;
   color: rgba(0, 0, 0, 0.6);
-  margin-top: 4px;
+  font-size: 14px;
 }
 
 .close-button {
-  margin-right: 4px;
+  margin-left: auto;
 }
 
 /* Dialog content */
@@ -110,113 +97,77 @@
 
 /* Section labels */
 .section-label {
-  font-size: 14px;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.6);
-  margin: 24px 0 12px;
-  letter-spacing: 0.1px;
+  margin: 20px 0 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Card section for macros */
 .card-section {
-  background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 12px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
   padding: 16px;
-  margin-top: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .macro-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  
-  @media (max-width: 480px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .macro-item {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 14px 8px;
-  border-radius: 10px;
-  background: white;
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 8px;
+  position: relative;
+  
+  .macro-value {
+    font-size: 18px;
+    font-weight: 500;
+  }
+  
+  .macro-label {
+    font-size: 10px;
+    color: rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.5px;
+  }
   
   mat-icon {
     position: absolute;
-    bottom: 8px;
-    right: 8px;
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    opacity: 0.3;
+    bottom: 5px;
+    right: 5px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    opacity: 0.4;
   }
   
   &.calories {
-    mat-icon {
-      color: #673ab7;
-    }
+    color: #f44336;
   }
   
   &.protein {
-    mat-icon {
-      color: #4caf50;
-    }
+    color: #388e3c;
   }
   
   &.carbs {
-    mat-icon {
-      color: #2196f3;
-    }
+    color: #f57c00;
   }
   
   &.fat {
-    mat-icon {
-      color: #ff9800;
-    }
+    color: #0288d1;
   }
-}
-
-.macro-value {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  
-  .calories & {
-    color: #673ab7;
-  }
-  
-  .protein & {
-    color: #4caf50;
-  }
-  
-  .carbs & {
-    color: #2196f3;
-  }
-  
-  .fat & {
-    color: #ff9800;
-  }
-}
-
-.macro-label {
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  color: rgba(0, 0, 0, 0.6);
 }
 
 .base-serving {
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.5);
   text-align: center;
-  margin-top: 12px;
-  font-style: italic;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
 }
 
 /* Quantity inputs */
@@ -224,19 +175,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 8px 0 16px;
-  width: 100%;
-}
-
-.multiply-sign {
-  font-size: 20px;
-  color: rgba(0, 0, 0, 0.5);
-  margin: 0 4px;
-}
-
-.quantity-inputs mat-form-field {
-  flex: 1;
-  min-width: 80px;
+  
+  mat-form-field {
+    flex: 1;
+  }
+  
+  .multiply-sign {
+    font-size: 20px;
+    color: rgba(0, 0, 0, 0.6);
+  }
 }
 
 /* Override styles for number inputs */
@@ -252,10 +199,9 @@
 
 /* Total nutrition section */
 .totals-card {
-  background-color: rgba(103, 58, 183, 0.05);
-  border-radius: 12px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
   padding: 16px;
-  margin-bottom: 16px;
 }
 
 .total-row {
@@ -265,99 +211,82 @@
 }
 
 .total-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  margin-right: 16px;
-  flex-shrink: 0;
+  margin-right: 12px;
   
   &.calories {
-    background-color: rgba(103, 58, 183, 0.15);
-    
-    mat-icon {
-      color: #673ab7;
-    }
-  }
-  
-  mat-icon {
-    font-size: 24px;
-    height: 24px;
-    width: 24px;
+    background-color: rgba(244, 67, 54, 0.2);
+    color: #f44336;
   }
 }
 
 .total-info {
-  display: flex;
-  flex-direction: column;
+  flex: 1;
 }
 
 .total-label {
   font-size: 14px;
   color: rgba(0, 0, 0, 0.6);
-  margin-bottom: 4px;
 }
 
 .total-value {
   font-size: 20px;
-  font-weight: 600;
-  color: #673ab7;
+  font-weight: 500;
 }
 
 .macros-row {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
 .macro-chip {
   display: flex;
   align-items: center;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 14px;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
   font-weight: 500;
   
   mat-icon {
-    font-size: 18px;
-    height: 18px;
-    width: 18px;
-    margin-right: 6px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
   }
   
   &.protein {
-    background-color: rgba(76, 175, 80, 0.12);
-    color: #4caf50;
+    background-color: rgba(102, 187, 106, 0.2);
+    color: #388e3c;
   }
   
   &.carbs {
-    background-color: rgba(33, 150, 243, 0.12);
-    color: #2196f3;
+    background-color: rgba(255, 167, 38, 0.2);
+    color: #f57c00;
   }
   
   &.fat {
-    background-color: rgba(255, 152, 0, 0.12);
-    color: #ff9800;
+    background-color: rgba(41, 182, 246, 0.2);
+    color: #0288d1;
   }
 }
 
 .serving-summary {
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.5);
   text-align: center;
-  font-style: italic;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
 }
 
 /* Action buttons */
 ::ng-deep .mat-mdc-dialog-actions {
-  padding: 8px 20px 20px !important;
-  display: flex;
-  justify-content: space-between !important;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  margin: 0 !important;
+  padding: 16px 24px;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .cancel-button {
@@ -373,4 +302,12 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.date-selector {
+  margin: 16px 0;
+  
+  .date-picker-field {
+    width: 100%;
+  }
 }

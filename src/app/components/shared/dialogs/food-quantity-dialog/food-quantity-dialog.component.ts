@@ -6,6 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule, DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
 import { FoodItem } from '../../../../models/food-item.model';
 import { FoodQuantityDialogData } from '../../../../models/food-quantity-dialog-data.model';
 
@@ -16,6 +18,7 @@ export interface FoodQuantityResult {
   totalProtein: number;
   totalCarbs: number;
   totalFat: number;
+  targetDate?: Date;
 }
 
 @Component({
@@ -28,7 +31,9 @@ export interface FoodQuantityResult {
     MatIconModule,
     MatInputModule,
     MatFormFieldModule,
-    FormsModule
+    FormsModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   templateUrl: './food-quantity-dialog.component.html',
   styleUrls: ['./food-quantity-dialog.component.scss']
@@ -40,6 +45,7 @@ export class FoodQuantityDialogComponent implements OnInit {
   servingSize: number = 100;
   baseServingSize: number = 100;
   isEditMode: boolean = false;
+  targetDate: Date = new Date();
   
   // Calculated totals
   totalCalories: number = 0;
@@ -70,6 +76,11 @@ export class FoodQuantityDialogComponent implements OnInit {
     if (data.initialServingSize) {
       this.servingSize = data.initialServingSize;
       this.isEditMode = true;
+    }
+    
+    // If target date is provided
+    if (data.targetDate) {
+      this.targetDate = data.targetDate;
     }
     
     this.updateTotals();
@@ -103,6 +114,9 @@ export class FoodQuantityDialogComponent implements OnInit {
     adjustedFood.carbs = this.totalCarbs;
     adjustedFood.fat = this.totalFat;
     
+    // Debug: log the target date
+    console.log('Saving food with target date:', this.targetDate);
+    
     // Return the result
     const result: FoodQuantityResult = {
       food: adjustedFood,
@@ -110,7 +124,8 @@ export class FoodQuantityDialogComponent implements OnInit {
       totalCalories: this.totalCalories,
       totalProtein: this.totalProtein,
       totalCarbs: this.totalCarbs,
-      totalFat: this.totalFat
+      totalFat: this.totalFat,
+      targetDate: this.targetDate
     };
     
     this.dialogRef.close(result);
@@ -157,6 +172,13 @@ export class FoodQuantityDialogComponent implements OnInit {
         return 'water_drop';
       default:
         return 'restaurant';
+    }
+  }
+  
+  onDateChange(event: any): void {
+    if (event.value) {
+      this.targetDate = new Date(event.value);
+      console.log('Date changed to:', this.targetDate);
     }
   }
 } 

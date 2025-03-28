@@ -4,4 +4,5 @@ export interface FoodQuantityDialogData {
     food: FoodItem;
     initialQuantity?: number;
     initialServingSize?: number;
+    targetDate?: Date;
   }

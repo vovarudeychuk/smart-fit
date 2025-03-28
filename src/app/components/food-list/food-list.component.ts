@@ -5,8 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { NutritionService } from '../../services/nutrition.service';
-import { FoodQuantityDialogComponent } from '../shared/dialogs';
-import { ConfirmDialogComponent } from '../shared/dialogs';
+import { FoodQuantityDialogComponent, ConfirmDialogComponent, FoodMoveCopyDialogComponent } from '../shared/dialogs';
 import { FoodItem } from '../../models/food-item.model';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 
@@ -426,6 +425,9 @@ export class FoodListComponent {
       servingSize: '100g' // Reset to standard serving
     };
     
+    // Get current date from the nutritionService
+    const currentDate = this.nutritionService.getCurrentDay().date;
+    
     // Open dialog with this food
     const dialogRef = this.dialog.open(FoodQuantityDialogComponent, {
       width: '400px',
@@ -433,16 +435,87 @@ export class FoodListComponent {
       data: { 
         food: baseFood,
         initialQuantity: quantity,
-        initialServingSize: servingSize
+        initialServingSize: servingSize,
+        targetDate: new Date(currentDate)
       }
     });
     
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        // Update the food item - convert id to string
-        this.nutritionService.updateFoodItem(food.id.toString(), result.food);
+        console.log('Food list - Edit food result:', result);
+        
+        // If the target date has changed, show the move/copy dialog
+        if (result.targetDate && !this.isSameDay(result.targetDate, currentDate)) {
+          console.log('Food list - Date was changed, asking user to move or copy');
+          
+          // Show the move/copy dialog to let the user decide
+          const moveOrCopyDialogRef = this.dialog.open(FoodMoveCopyDialogComponent, {
+            width: '450px',
+            maxWidth: '95vw',
+            data: {
+              foodName: food.name,
+              fromDate: new Date(currentDate),
+              toDate: new Date(result.targetDate)
+            }
+          });
+          
+          moveOrCopyDialogRef.afterClosed().subscribe(action => {
+            if (action === 'move') {
+              // Move operation: delete from current day and add to new day
+              console.log('Food list - User chose to move the food');
+              this.nutritionService.deleteFoodItem(food.id.toString());
+              
+              // Navigate to the new date and add the updated food
+              this.nutritionService.navigateToWeekContaining(result.targetDate);
+              
+              // Wait for navigation to complete before adding
+              setTimeout(() => {
+                this.nutritionService.addFoodItem(result.food);
+              }, 150);
+            } 
+            else if (action === 'copy') {
+              // Copy operation: keep in current day and add to new day
+              console.log('Food list - User chose to copy the food');
+              
+              // First update the food in the current day
+              this.nutritionService.updateFoodItem(food.id.toString(), result.food);
+              
+              // Then create a copy with a new ID for the target date
+              const foodCopy = {
+                ...result.food,
+                id: Date.now() // New unique ID for the copy
+              };
+              
+              // Navigate to the target date
+              this.nutritionService.navigateToWeekContaining(result.targetDate);
+              
+              // Wait for navigation to complete before adding
+              setTimeout(() => {
+                this.nutritionService.addFoodItem(foodCopy);
+              }, 150);
+            }
+            else {
+              // Cancel operation: just update the food in the current day
+              console.log('Food list - User cancelled move/copy operation');
+              this.nutritionService.updateFoodItem(food.id.toString(), result.food);
+            }
+          });
+        } else {
+          // Just update the food in the current day (no date change)
+          console.log('Food list - Updating food in current day');
+          this.nutritionService.updateFoodItem(food.id.toString(), result.food);
+        }
       }
     });
+  }
+  
+  // Helper method to check if two dates are the same day
+  private isSameDay(date1: Date, date2: Date): boolean {
+    date1 = new Date(date1);
+    date2 = new Date(date2);
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
   }
   
   deleteFood(food: FoodItem): void {
