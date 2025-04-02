@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, EventEmitter } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, of, throwError } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
@@ -35,6 +35,9 @@ export class AuthService {
   isAuthenticated = signal<boolean>(this.hasValidToken());
   currentUser = signal<User | null>(this.getUserFromStorage());
   
+  // Add this event emitter
+  userChanged = new EventEmitter<User | null>();
+  
   login(username: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/auth/login`, { username, password })
       .pipe(
@@ -42,8 +45,8 @@ export class AuthService {
         catchError(error => {
           console.error('Login failed:', error);
           return throwError(() => new Error(error.error?.message || 'Login failed. Please try again.'));
-        })
-      );
+        }),
+      )
   }
   
   register(userData: any): Observable<AuthResponse> {
@@ -90,6 +93,9 @@ export class AuthService {
       localStorage.setItem(this.userKey, JSON.stringify(response.user));
       this.isAuthenticated.set(true);
       this.currentUser.set(response.user);
+      
+      // Emit event when user changes
+      this.userChanged.emit(response.user);
     }
   }
   
@@ -133,5 +139,9 @@ export class AuthService {
         return of(false);
       })
     );
+  }
+
+  associateUserData(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/auth/associate-user-data`, {});
   }
 } 

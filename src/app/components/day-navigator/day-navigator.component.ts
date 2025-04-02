@@ -399,7 +399,7 @@ export class DayNavigatorComponent implements OnInit {
               if (result) {
                 // If it's a move operation, remove from the original day
                 if (action === 'move') {
-                  this.nutritionService.deleteFoodItem(foodItem.id.toString());
+                  this.nutritionService.deleteFoodItem(foodItem.id?.toString() || foodItem._id?.toString() || '');
                 }
                 
                 // Navigate to the target date

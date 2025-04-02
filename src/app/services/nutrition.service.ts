@@ -5,13 +5,15 @@ import { ApiService } from './api.service';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { catchError, map, tap, finalize } from 'rxjs/operators';
 import { addWeeks, subWeeks, startOfWeek, endOfWeek, format, isSameWeek, addDays, getDay } from 'date-fns';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NutritionService {
   private apiService = inject(ApiService);
-  
+  private authService = inject(AuthService);
+
   // User goals (could be moved to user settings in a real app)
   private calorieGoal = 2000;
   private proteinGoal = 150; // grams
@@ -108,6 +110,12 @@ export class NutritionService {
   });
 
   constructor() {  
+    // Subscribe to user changes
+    this.authService.userChanged.subscribe(user => {
+      console.log('User changed, clearing nutrition cache');
+      this.clearCacheAndRefresh();
+    });
+    
     // Debug today's index calculation
     const todayIndex = this.getTodayIndex();
     const today = new Date();
@@ -124,6 +132,7 @@ export class NutritionService {
     }
     
     // Load weekly nutrition data from API first
+    this.clearCache();
     this.loadWeeklyNutrition();
     
     // After data is loaded, navigate to today using the correct index
@@ -137,6 +146,7 @@ export class NutritionService {
     
     // Load today's data
     this.loadDailyData(new Date());
+
   }
 
   private generateWeekDates(): Date[] {
@@ -313,9 +323,18 @@ export class NutritionService {
     const currentDayIndex = this.currentDayIndex();
     const currentDay = this.weeklyNutrition()[currentDayIndex];
     
-    const foodIndex = currentDay.foodItems.findIndex(item => item.id.toString() === foodItemId);
+    // Find the food with either id or _id
+    const foodIndex = currentDay.foodItems.findIndex(item => 
+      (item.id?.toString() === foodItemId) || (item._id?.toString() === foodItemId)
+    );
+    
     if (foodIndex !== -1) {
-      // Create a copy of the weekly nutrition data for UI update
+      // Get the original food item to access its MongoDB ID
+      const originalFood = currentDay.foodItems[foodIndex];
+      // Prefer using MongoDB _id if available
+      const serverFoodId = originalFood._id || foodItemId;
+      
+      // Update UI first
       const updatedNutrition = [...this.weeklyNutrition()];
       const updatedDay = { ...updatedNutrition[currentDayIndex] };
       updatedDay.foodItems = [...updatedDay.foodItems];
@@ -323,15 +342,18 @@ export class NutritionService {
       
       this.calculateDayTotals(updatedDay);
       updatedNutrition[currentDayIndex] = updatedDay;
-      
-      // Update UI state
       this.weeklyNutrition.set(updatedNutrition);
       
       // Get the current week start date for API call
       const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
       
-      // Send to server
-      this.apiService.updateFoodInDay(currentDayIndex, parseInt(foodItemId), updatedFood, weekStartDateStr).pipe(
+      // Send to server with MongoDB _id
+      this.apiService.updateFoodInDay(
+        currentDayIndex, 
+        serverFoodId, // Use MongoDB _id instead of client id
+        updatedFood, 
+        weekStartDateStr
+      ).pipe(
         tap(response => {
           console.log('Food item updated on server:', response);
         }),
@@ -348,14 +370,18 @@ export class NutritionService {
     const currentDayIndex = this.currentDayIndex();
     const currentDay = this.weeklyNutrition()[currentDayIndex];
     
-    const foodIndex = currentDay.foodItems.findIndex(item => item.id.toString() === foodItemId);
+    const foodIndex = currentDay.foodItems.findIndex(item => 
+      (item.id?.toString() === foodItemId) || (item._id?.toString() === foodItemId)
+    );
     if (foodIndex !== -1) {
       // Create copies for UI update
       const updatedNutrition = [...this.weeklyNutrition()];
       const updatedDay = { ...updatedNutrition[currentDayIndex] };
       
       // Remove the food item
-      updatedDay.foodItems = updatedDay.foodItems.filter(item => item.id.toString() !== foodItemId);
+      updatedDay.foodItems = updatedDay.foodItems.filter(item => 
+        (item.id?.toString() !== foodItemId) && (item._id?.toString() !== foodItemId)
+      );
       
       // Recalculate totals
       this.calculateDayTotals(updatedDay);
@@ -539,16 +565,32 @@ export class NutritionService {
       tap(response => {
         console.log('Weekly nutrition loaded from API:', response);
         
-        if (response.weekData) {
-          this.weeklyNutrition.set(response.weekData);
-          
-          // Use the backend day index directly without adjustment
-          if (typeof response.currentDayIndex === 'number') {
-            console.log('Setting day index from server:', response.currentDayIndex);
-            this.currentDayIndex.set(response.currentDayIndex);
-          }
+        let weekData: DailyNutrition[] = [];
+        
+        if (response.weekData && Array.isArray(response.weekData)) {
+          // Create a map of existing data by date
+          const existingDataMap = new Map<string, DailyNutrition>();
+          response.weekData.forEach((day: DailyNutrition) => {
+            const dateKey = new Date(day.date).toISOString().split('T')[0];
+            existingDataMap.set(dateKey, day);
+          });
+          // Create a full week array (7 days), using existing data or empty days
+          const emptyWeekData = this.createEmptyWeekData(weekStartDate);
+          weekData = emptyWeekData.map(emptyDay => {
+            const dateKey = new Date(emptyDay.date).toISOString().split('T')[0];
+            return existingDataMap.get(dateKey) || emptyDay;
+          });
         } else {
-          this.weeklyNutrition.set(response);
+          // No data or invalid format, create empty week
+          weekData = this.createEmptyWeekData(weekStartDate);
+        }
+        
+        this.weeklyNutrition.set(weekData);
+        
+        // Use the backend day index directly without adjustment
+        if (typeof response.currentDayIndex === 'number') {
+          console.log('Setting day index from server:', response.currentDayIndex);
+          this.currentDayIndex.set(response.currentDayIndex);
         }
         
         // Store the updated data for this week
@@ -620,11 +662,31 @@ export class NutritionService {
     const weekKey = this.getWeekKey(this.currentWeekDate());
     this.nutritionDataByWeek.set(weekKey, this.weeklyNutrition());
   }
+
+  clearCache(): void {
+    this.nutritionDataByWeek.clear();
+    console.log('Nutrition cache cleared');
+  }
   
   // Get a unique key for a week based on its start date
   private getWeekKey(date: Date): string {
     const weekStart = startOfWeek(date);
-    return format(weekStart, 'yyyy-MM-dd');
+    
+    // Get userId from localStorage directly if authService isn't available
+    let userId = 'default';
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user && user.id) {
+          userId = String(user.id);
+        }
+      }
+    } catch (e) {
+      console.error('Error getting user ID:', e);
+    }
+    
+    return `${userId}_${format(weekStart, 'yyyy-MM-dd')}`;
   }
   
   // Navigate to the week containing the given date
@@ -664,5 +726,11 @@ export class NutritionService {
     return date1.getFullYear() === date2.getFullYear() && 
            date1.getMonth() === date2.getMonth() && 
            date1.getDate() === date2.getDate();
+  }
+
+  clearCacheAndRefresh(): void {
+    console.log('Clearing nutrition cache and refreshing data');
+    this.nutritionDataByWeek.clear();
+    this.loadWeeklyNutrition();
   }
 } 

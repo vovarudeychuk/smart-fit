@@ -115,7 +115,17 @@ export class DashboardComponent implements OnInit {
   private nutritionService = inject(NutritionService);
   
   // Get reference to current day data
-  currentDay = computed(() => this.nutritionService.getCurrentDay());
+  currentDay = computed(() => {
+    const day = this.nutritionService.getCurrentDay();
+    return day || {
+      date: new Date(),
+      foodItems: [],
+      totalCalories: 0,
+      totalProtein: 0,
+      totalCarbs: 0,
+      totalFat: 0
+    };
+  });
   
   // Convenience getters for nutritional goals
   calorieGoal = this.nutritionService.getCalorieGoal();

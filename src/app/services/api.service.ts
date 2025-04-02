@@ -98,18 +98,46 @@ export class ApiService {
   getWeeklyNutrition(weekStartDate?: string): Observable<any> {
     let url = `${this.baseUrl}/nutrition/weekly`;
     
-    // If a specific week is requested, add it as a query param
+    // Create params with userId
+    let params = new HttpParams();
+    
     if (weekStartDate) {
-      const params = new HttpParams().set('weekStartDate', weekStartDate);
-      return this.http.get(url, { params });
+      params = params.set('weekStartDate', weekStartDate);
     }
     
-    return this.http.get(url);
+    // Get user ID from localStorage and add to params
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user && user.id) {
+          params = params.set('userId', String(user.id));
+        }
+      }
+    } catch (e) {
+      console.error('Error adding userId to request:', e);
+    }
+    
+    return this.http.get(url, { params });
   }
 
   // Daily nutrition endpoints
   getDailyNutrition(date: string): Observable<any> {
-    const params = new HttpParams().set('date', date);
+    let params = new HttpParams().set('date', date);
+    
+    // Add user ID
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user && user.id) {
+          params = params.set('userId', String(user.id));
+        }
+      }
+    } catch (e) {
+      console.error('Error adding userId to request:', e);
+    }
+    
     return this.http.get(`${this.baseUrl}/nutrition/daily`, { params });
   }
 
@@ -180,7 +208,7 @@ export class ApiService {
   }
 
   // Update a food item for a specific day
-  updateFoodInDay(dayIndex: number, foodItemId: number, updatedFood: FoodItem, weekStartDate?: string): Observable<any> {
+  updateFoodInDay(dayIndex: number, foodItemId: string | number, updatedFood: FoodItem, weekStartDate?: string): Observable<any> {
     let url = `${this.baseUrl}/nutrition/day/${dayIndex}/foods/${foodItemId}`;
     
     // If a specific week is requested, add it as a query param

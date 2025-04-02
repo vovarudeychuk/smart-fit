@@ -1,5 +1,6 @@
 export interface FoodItem {
-  id: number;
+  id?: number | string;
+  _id?: string;  // Add MongoDB _id property
   name: string;
   calories: number;
   protein: number; // in grams

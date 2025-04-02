@@ -404,6 +404,14 @@ export class FoodListComponent {
   }
   
   editFood(food: FoodItem): void {
+    // Get ID safely using optional chaining
+    const foodId = food._id?.toString() || food.id?.toString();
+    
+    if (!foodId) {
+      console.error('Food item has no ID', food);
+      return;
+    }
+    
     // Extract quantity and serving size from the food item
     let quantity = 1;
     let servingSize = 100;
@@ -463,7 +471,7 @@ export class FoodListComponent {
             if (action === 'move') {
               // Move operation: delete from current day and add to new day
               console.log('Food list - User chose to move the food');
-              this.nutritionService.deleteFoodItem(food.id.toString());
+              this.nutritionService.deleteFoodItem(String(foodId));
               
               // Navigate to the new date and add the updated food
               this.nutritionService.navigateToWeekContaining(result.targetDate);
@@ -478,7 +486,7 @@ export class FoodListComponent {
               console.log('Food list - User chose to copy the food');
               
               // First update the food in the current day
-              this.nutritionService.updateFoodItem(food.id.toString(), result.food);
+              this.nutritionService.updateFoodItem(String(foodId), result.food);
               
               // Then create a copy with a new ID for the target date
               const foodCopy = {
@@ -497,13 +505,13 @@ export class FoodListComponent {
             else {
               // Cancel operation: just update the food in the current day
               console.log('Food list - User cancelled move/copy operation');
-              this.nutritionService.updateFoodItem(food.id.toString(), result.food);
+              this.nutritionService.updateFoodItem(String(foodId), result.food);
             }
           });
         } else {
           // Just update the food in the current day (no date change)
           console.log('Food list - Updating food in current day');
-          this.nutritionService.updateFoodItem(food.id.toString(), result.food);
+          this.nutritionService.updateFoodItem(String(foodId), result.food);
         }
       }
     });
@@ -530,8 +538,9 @@ export class FoodListComponent {
     
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
-        // Convert id to string
-        this.nutritionService.deleteFoodItem(food.id.toString());
+        // Get ID safely
+        const foodId = food.id || food._id;
+        this.nutritionService.deleteFoodItem(String(foodId));
       }
     });
   }
