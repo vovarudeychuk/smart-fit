@@ -21,7 +21,7 @@ import { AuthService, User } from '../../services/auth.service';
         </mat-card-header>
         <mat-card-content>
           <p><strong>Email:</strong> {{ user?.email }}</p>
-          <p><strong>Member since:</strong> {{ memberSince }}</p>
+          <p><strong>Member since:</strong> {{ user?.createdAt?.toDate()?.toLocaleDateString() || 'Not available' }}</p>
         </mat-card-content>
         <mat-card-actions>
           <button mat-button color="primary">Edit Profile</button>
@@ -51,7 +51,7 @@ import { AuthService, User } from '../../services/auth.service';
 export class ProfileComponent {
   private authService = inject(AuthService);
   user: User | null = this.authService.currentUser();
-  memberSince = new Date().toLocaleDateString();
+  // memberSince property is no longer needed as createdAt is displayed directly from user object.
   
   logout(): void {
     this.authService.logout();

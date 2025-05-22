@@ -66,7 +66,7 @@ import { FoodQuantityDialogComponent, FoodMoveCopyDialogComponent } from '../sha
           [isPast]="isPastDay(day.date)"
           [isFuture]="isFutureDay(day.date)"
           [totalCalories]="day.totalCalories"
-          [calorieGoal]="calorieGoal"
+          [calorieGoal]="calorieGoal()"
           [hasFoodItems]="day.foodItems.length > 0"
           [dayIndex]="$index"
           (daySelected)="navigateToDay($index)"
@@ -209,7 +209,7 @@ export class DayNavigatorComponent implements OnInit {
   
   // Use computed to create a reactive property that reflects the current day data
   currentDay = computed(() => this.nutritionService.getCurrentDay());
-  calorieGoal = this.nutritionService.getCalorieGoal();
+  calorieGoal = this.nutritionService.calorieGoal; // Assign the signal directly
   
   ngOnInit() {
 
@@ -226,9 +226,10 @@ export class DayNavigatorComponent implements OnInit {
       this.navigateToDay(currentIndex - 1);
     } else {
       // Go to previous week (to the last day of previous week)
-      this.nutritionService.goToPreviousWeek();
-      // After loading the previous week, navigate to its last day (index 6)
-      setTimeout(() => this.navigateToDay(6), 100);
+      this.nutritionService.goToPreviousWeek().subscribe({
+        complete: () => this.navigateToDay(6), // Navigate to last day of previous week
+        error: (err) => console.error('Error navigating to previous week:', err)
+      });
     }
   }
   
@@ -239,9 +240,10 @@ export class DayNavigatorComponent implements OnInit {
       this.navigateToDay(currentIndex + 1);
     } else {
       // Go to next week (to the first day of next week)
-      this.nutritionService.goToNextWeek();
-      // After loading the next week, navigate to its first day (index 0)
-      setTimeout(() => this.navigateToDay(0), 100);
+      this.nutritionService.goToNextWeek().subscribe({
+        complete: () => this.navigateToDay(0), // Navigate to first day of next week
+        error: (err) => console.error('Error navigating to next week:', err)
+      });
     }
   }
   
@@ -399,16 +401,21 @@ export class DayNavigatorComponent implements OnInit {
               if (result) {
                 // If it's a move operation, remove from the original day
                 if (action === 'move') {
-                  this.nutritionService.deleteFoodItem(foodItem.id?.toString() || foodItem._id?.toString() || '');
+                  const foodIdToDelete = foodItem.id?.toString();
+                  if (foodIdToDelete) {
+                    this.nutritionService.deleteFoodItem(foodIdToDelete);
+                  } else {
+                    console.error("Food item ID missing for delete during move operation:", foodItem);
+                  }
                 }
                 
-                // Navigate to the target date
-                this.nutritionService.navigateToWeekContaining(targetDate);
-                
-                // Wait for navigation to complete before adding
-                setTimeout(() => {
-                  this.nutritionService.addFoodItem(result.food);
-                }, 150);
+                // Navigate to the target date then add food
+                this.nutritionService.navigateToWeekContaining(targetDate).subscribe({
+                  complete: () => {
+                    this.nutritionService.addFoodItem(result.food);
+                  },
+                  error: (err) => console.error('Error navigating or adding food during drop:', err)
+                });
               }
             });
           }

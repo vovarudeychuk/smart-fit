@@ -404,8 +404,8 @@ export class FoodListComponent {
   }
   
   editFood(food: FoodItem): void {
-    // Get ID safely using optional chaining
-    const foodId = food._id?.toString() || food.id?.toString();
+    // Get ID safely using optional chaining - standardized to food.id
+    const foodId = food.id?.toString(); 
     
     if (!foodId) {
       console.error('Food item has no ID', food);
@@ -471,36 +471,34 @@ export class FoodListComponent {
             if (action === 'move') {
               // Move operation: delete from current day and add to new day
               console.log('Food list - User chose to move the food');
-              this.nutritionService.deleteFoodItem(String(foodId));
+              this.nutritionService.deleteFoodItem(String(foodId)); // foodId is already a string or undefined
               
-              // Navigate to the new date and add the updated food
-              this.nutritionService.navigateToWeekContaining(result.targetDate);
-              
-              // Wait for navigation to complete before adding
-              setTimeout(() => {
-                this.nutritionService.addFoodItem(result.food);
-              }, 150);
+              this.nutritionService.navigateToWeekContaining(result.targetDate).subscribe({
+                complete: () => {
+                  this.nutritionService.addFoodItem(result.food); // Add the (potentially modified) original food to new date
+                },
+                error: (err) => console.error('Error navigating or adding food during move:', err)
+              });
             } 
             else if (action === 'copy') {
               // Copy operation: keep in current day and add to new day
               console.log('Food list - User chose to copy the food');
               
-              // First update the food in the current day
-              this.nutritionService.updateFoodItem(String(foodId), result.food);
+              // First update the food in the current day (if it was modified in FoodQuantityDialog)
+              this.nutritionService.updateFoodItem(String(foodId), result.food); // foodId is already a string or undefined
               
               // Then create a copy with a new ID for the target date
-              const foodCopy = {
+              const foodCopy: FoodItem = { // Ensure FoodItem type
                 ...result.food,
-                id: Date.now() // New unique ID for the copy
+                id: Date.now().toString() // New unique ID for the copy
               };
               
-              // Navigate to the target date
-              this.nutritionService.navigateToWeekContaining(result.targetDate);
-              
-              // Wait for navigation to complete before adding
-              setTimeout(() => {
-                this.nutritionService.addFoodItem(foodCopy);
-              }, 150);
+              this.nutritionService.navigateToWeekContaining(result.targetDate).subscribe({
+                complete: () => {
+                  this.nutritionService.addFoodItem(foodCopy);
+                },
+                error: (err) => console.error('Error navigating or adding food during copy:', err)
+              });
             }
             else {
               // Cancel operation: just update the food in the current day
@@ -538,9 +536,13 @@ export class FoodListComponent {
     
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
-        // Get ID safely
-        const foodId = food.id || food._id;
-        this.nutritionService.deleteFoodItem(String(foodId));
+        // Get ID safely - standardized to food.id
+        const foodId = food.id?.toString(); 
+        if (foodId) {
+          this.nutritionService.deleteFoodItem(foodId);
+        } else {
+          console.error('Cannot delete food item: ID is missing.', food);
+        }
       }
     });
   }

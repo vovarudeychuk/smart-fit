@@ -1,30 +1,27 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { FoodItem } from '../models/food-item.model';
 import { DailyNutrition } from '../models/daily-nutrition.model';
-import { ApiService } from './api.service';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { catchError, map, tap, finalize } from 'rxjs/operators';
+import { Observable, of, from } from 'rxjs';
+import { catchError, map, tap, finalize, switchMap } from 'rxjs/operators';
 import { addWeeks, subWeeks, startOfWeek, endOfWeek, format, isSameWeek, addDays, getDay } from 'date-fns';
 import { AuthService } from './auth.service';
+import { Firestore, collection, doc, query, where, collectionData, docData, setDoc, updateDoc, deleteDoc, runTransaction } from '@angular/fire/firestore';
+
+// Firestore Collection Constants
+const FOODS_COLLECTION = 'foods';
+const USER_GOALS_COLLECTION = 'user_nutrition_goals';
+const USER_DAILY_LOGS_COLLECTION = 'user_daily_logs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NutritionService {
-  private apiService = inject(ApiService);
-  private authService = inject(AuthService);
+  private firestore: Firestore = inject(Firestore);
+  private authService: AuthService = inject(AuthService);
 
-  // User goals (could be moved to user settings in a real app)
-  private calorieGoal = 2000;
-  private proteinGoal = 150; // grams
-  private carbsGoal = 200;   // grams
-  private fatGoal = 65;      // grams
-
-  // Mock food database
-  private foodDatabase: FoodItem[] = [
-    { id: 1, name: 'Chicken Breast', calories: 165, protein: 31, carbs: 0, fat: 3.6, servingSize: '100g' },
-    { id: 2, name: 'Brown Rice', calories: 112, protein: 2.6, carbs: 23.5, fat: 0.9, servingSize: '100g' },
-  ];
+  // User goals - will be loaded from Firestore
+  // private calorieGoal, proteinGoal, carbsGoal, fatGoal properties are removed.
+  // Public computed signals will be used instead.
 
   // Generate dates for the current week
   private currentDate = new Date();
@@ -38,12 +35,10 @@ export class NutritionService {
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     
-    // Adjust based on your week start day
-    // If your week starts on Monday:
-    return dayOfWeek === 0 ? 6 : dayOfWeek;
-
-    // OR if your week starts on Sunday:
-    // return dayOfWeek;
+    // Adjust based on your week start day.
+    // Date.getDay() returns 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
+    // Our week starts on Monday (index 0) and ends on Sunday (index 6).
+    return dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   }
   
   // Set the initial day index to today's day of the week
@@ -73,11 +68,17 @@ export class NutritionService {
     carbsGoal: number;
     fatGoal: number;
   }>({
-    calorieGoal: 2000,
-    proteinGoal: 150,
-    carbsGoal: 200,
-    fatGoal: 65
+    calorieGoal: 2000, // Default
+    proteinGoal: 150,  // Default
+    carbsGoal: 200,    // Default
+    fatGoal: 65        // Default
   });
+
+  // Public computed signals for individual goals
+  public calorieGoal = computed(() => this.nutritionGoals().calorieGoal);
+  public proteinGoal = computed(() => this.nutritionGoals().proteinGoal);
+  public carbsGoal = computed(() => this.nutritionGoals().carbsGoal);
+  public fatGoal = computed(() => this.nutritionGoals().fatGoal);
   
   // Computed nutrition totals for selected day
   totals = computed(() => {
@@ -89,9 +90,6 @@ export class NutritionService {
       fat: foods.reduce((sum, food) => sum + food.fat, 0)
     };
   });
-
-  // Add the missing foodCache property
-  private foodCache = new Map<string, FoodItem[]>();
 
   // Add this property to track current week date
   private currentWeekDate = signal<Date>(new Date());
@@ -133,13 +131,19 @@ export class NutritionService {
     
     // Load weekly nutrition data from API first
     this.clearCache();
-    this.loadWeeklyNutrition();
-    
-    // After data is loaded, navigate to today using the correct index
-    setTimeout(() => {
-      // Allow time for API to return data
-      this.navigateToDay(todayIndex);
-    }, 200);
+    this.loadWeeklyNutrition().subscribe({ // Subscribe in constructor to load initial data
+      next: () => {
+        // Initial load successful, navigate to today
+        const todayIndex = this.getTodayIndex();
+        const currentWeekData = this.weeklyNutrition();
+        if (todayIndex >= 0 && todayIndex < currentWeekData.length) {
+            this.navigateToDay(todayIndex);
+        } else if (currentWeekData.length > 0) {
+            this.navigateToDay(0); // Fallback to first day if todayIndex is out of bounds
+        }
+      },
+      error: err => console.error('Error during initial loadWeeklyNutrition in constructor:', err)
+    });
     
     // Load initial goals from API
     this.loadNutritionGoals();
@@ -162,38 +166,6 @@ export class NutritionService {
     }
     
     return dates;
-  }
-
-  private generateMockWeekData(): DailyNutrition[] {
-    return this.weekDates.map(date => {
-      // Generate random food items for each day
-      const randomFoodItems = this.getRandomFoodItems(Math.floor(Math.random() * 4) + 1);
-      
-      // Calculate totals with proper type annotations
-      const totalCalories = randomFoodItems.reduce((sum: number, item: FoodItem) => sum + item.calories, 0);
-      const totalProtein = randomFoodItems.reduce((sum: number, item: FoodItem) => sum + item.protein, 0);
-      const totalCarbs = randomFoodItems.reduce((sum: number, item: FoodItem) => sum + item.carbs, 0);
-      const totalFat = randomFoodItems.reduce((sum: number, item: FoodItem) => sum + item.fat, 0);
-      
-      return {
-        date: date,
-        foodItems: randomFoodItems,
-        totalCalories,
-        totalProtein,
-        totalCarbs,
-        totalFat
-      };
-    });
-  }
-
-  // Add the missing getRandomFoodItems method
-  private getRandomFoodItems(count: number): FoodItem[] {
-    const items: FoodItem[] = [];
-    for (let i = 0; i < count; i++) {
-      const randomIndex = Math.floor(Math.random() * this.foodDatabase.length);
-      items.push(this.foodDatabase[randomIndex]);
-    }
-    return items;
   }
 
   // Public methods
@@ -221,21 +193,7 @@ export class NutritionService {
     return this.weeklyNutrition;
   }
 
-  getCalorieGoal() {
-    return this.calorieGoal;
-  }
-
-  getProteinGoal() {
-    return this.proteinGoal;
-  }
-
-  getCarbsGoal() {
-    return this.carbsGoal;
-  }
-
-  getFatGoal() {
-    return this.fatGoal;
-  }
+  // Old getter methods are removed. Components will use the public signals.
 
   navigateToNextDay() {
     if (this.currentDayIndex() < 6) {
@@ -249,176 +207,241 @@ export class NutritionService {
     }
   }
 
-  addFoodItem(foodItem: FoodItem) {
-    const dayIndex = this.currentDayIndex();
+  async addFoodItem(foodItem: FoodItem): Promise<void> {
+    const currentUser = this.authService.currentUser();
+    const selectedDayData = this.selectedDay(); // This is the day displayed in detail view
     
-    // Optimistically update the UI
-    const updatedNutrition = [...this.weeklyNutrition()];
-    updatedNutrition[dayIndex] = {
-      ...updatedNutrition[dayIndex],
-      foodItems: [...updatedNutrition[dayIndex].foodItems, foodItem],
-      totalCalories: updatedNutrition[dayIndex].totalCalories + foodItem.calories,
-      totalProtein: updatedNutrition[dayIndex].totalProtein + foodItem.protein,
-      totalCarbs: updatedNutrition[dayIndex].totalCarbs + foodItem.carbs,
-      totalFat: updatedNutrition[dayIndex].totalFat + foodItem.fat
-    };
-    
-    this.weeklyNutrition.set(updatedNutrition);
-    
-    // Store the updated data for this week
-    this.saveCurrentWeekData();
-    
-    // Get the current week start date for API call
-    const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
-    
-    // Send to the server
-    this.apiService.addFoodToDay(dayIndex, foodItem, weekStartDateStr).pipe(
-      tap(response => {
-        console.log('Food item added on server:', response);
-      }),
-      catchError(error => {
-        console.error('Failed to add food on server, rolling back UI update:', error);
-        // Could implement rollback logic here if needed
-        return of(null);
-      })
-    ).subscribe();
-  }
-
-  searchFoods(query: string): FoodItem[] {
-    // First check cache
-    if (this.foodCache.has(query)) {
-      return this.foodCache.get(query) || [];
+    if (!currentUser || !currentUser.uid) {
+      console.error('User not logged in. Cannot add food item.');
+      return;
     }
-    
-    // If not in cache, we'll return an empty array for now
-    // and update it asynchronously from the API
-    this.apiService.searchFoods(query).pipe(
-      tap(foods => {
-        // Store in cache for future use
-        this.foodCache.set(query, foods);
+    if (!selectedDayData || !selectedDayData.date) {
+      console.error('No selected day to add food item to.');
+      return;
+    }
+
+    const userId = currentUser.uid;
+    const dateStr = this.formatDate(selectedDayData.date); // YYYY-MM-DD
+    const dailyLogDocId = `${userId}_${dateStr}`;
+    const dailyLogDocRef = doc(this.firestore, `${USER_DAILY_LOGS_COLLECTION}/${dailyLogDocId}`);
+
+    try {
+      await runTransaction(this.firestore, async (transaction) => {
+        const dailyLogSnap = await transaction.get(dailyLogDocRef);
+        let currentFoodItems: FoodItem[] = [];
+        let currentTotals = { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 };
+
+        if (dailyLogSnap.exists()) {
+          const existingData = dailyLogSnap.data() as DailyNutrition;
+          currentFoodItems = existingData.foodItems || [];
+          currentTotals = { // Use existing totals or recalculate if necessary
+            totalCalories: existingData.totalCalories || 0,
+            totalProtein: existingData.totalProtein || 0,
+            totalCarbs: existingData.totalCarbs || 0,
+            totalFat: existingData.totalFat || 0,
+          };
+        }
+
+        // Add new food item
+        // Ensure new food items have a unique ID if not already present (e.g., for client-side temporary ID)
+        const newFoodItemWithId = { ...foodItem, id: foodItem.id || Date.now().toString() };
+        const updatedFoodItems = [...currentFoodItems, newFoodItemWithId];
         
-        // If search term is still the same, update the UI
-        // This logic might need to be moved to components
-      })
-    ).subscribe();
-    
-    return [];
+        // Recalculate totals
+        const newTotals = this.calculateTotalsForFoodItems(updatedFoodItems);
+
+        const dailyLogData: DailyNutrition = {
+          userId: userId,
+          date: dateStr,
+          foodItems: updatedFoodItems,
+          ...newTotals
+        };
+
+        transaction.set(dailyLogDocRef, dailyLogData, { merge: !dailyLogSnap.exists() }); // merge if exists, otherwise set
+      });
+
+      console.log('Food item added/updated in Firestore successfully.');
+      // After successful Firestore update, refresh local state for the selected day and potentially the week view
+      this.loadDailyData(selectedDayData.date); // Refresh _selectedDay
+      this.refreshWeeklyData(); // This will re-fetch the week's data, including the updated day
+      
+    } catch (error) {
+      console.error('Error adding food item to Firestore:', error);
+      // Handle error (e.g., show a notification to the user)
+    }
   }
 
-  searchFoodsAsync(query: string): Observable<FoodItem[]> {
-    return this.apiService.searchFoods(query).pipe(
-      tap(foods => {
-        console.log(`Found ${foods.length} foods matching "${query}"`);
-      }),
-      catchError(error => {
-        console.error('Error searching foods:', error);
-        // Return an empty array if there's an error
-        return of([]);
-      })
-    );
+  private calculateTotalsForFoodItems(foodItems: FoodItem[]): { totalCalories: number, totalProtein: number, totalCarbs: number, totalFat: number } {
+    return {
+      totalCalories: foodItems.reduce((sum, item) => sum + item.calories, 0),
+      totalProtein: foodItems.reduce((sum, item) => sum + item.protein, 0),
+      totalCarbs: foodItems.reduce((sum, item) => sum + item.carbs, 0),
+      totalFat: foodItems.reduce((sum, item) => sum + item.fat, 0)
+    };
+  }
+
+  searchFoodsAsync(queryText: string): Observable<FoodItem[]> {
+    if (!queryText || queryText.trim() === '') {
+      return of([]);
+    }
+    const foodsCollection = collection(this.firestore, FOODS_COLLECTION);
+    // Simple "starts with" like search. Case-sensitive by default in Firestore.
+    // For case-insensitive, you'd typically store a lowercase version of the name.
+    const q = query(foodsCollection, 
+                    where('name', '>=', queryText), 
+                    where('name', '<=', queryText + '\uf8ff')
+                   );
+    return collectionData(q, { idField: 'id' }) as Observable<FoodItem[]>;
   }
 
   // Update an existing food item
-  updateFoodItem(foodItemId: string, updatedFood: FoodItem): void {
-    const currentDayIndex = this.currentDayIndex();
-    const currentDay = this.weeklyNutrition()[currentDayIndex];
-    
-    // Find the food with either id or _id
-    const foodIndex = currentDay.foodItems.findIndex(item => 
-      (item.id?.toString() === foodItemId) || (item._id?.toString() === foodItemId)
-    );
-    
-    if (foodIndex !== -1) {
-      // Get the original food item to access its MongoDB ID
-      const originalFood = currentDay.foodItems[foodIndex];
-      // Prefer using MongoDB _id if available
-      const serverFoodId = originalFood._id || foodItemId;
-      
-      // Update UI first
-      const updatedNutrition = [...this.weeklyNutrition()];
-      const updatedDay = { ...updatedNutrition[currentDayIndex] };
-      updatedDay.foodItems = [...updatedDay.foodItems];
-      updatedDay.foodItems[foodIndex] = updatedFood;
-      
-      this.calculateDayTotals(updatedDay);
-      updatedNutrition[currentDayIndex] = updatedDay;
-      this.weeklyNutrition.set(updatedNutrition);
-      
-      // Get the current week start date for API call
-      const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
-      
-      // Send to server with MongoDB _id
-      this.apiService.updateFoodInDay(
-        currentDayIndex, 
-        serverFoodId, // Use MongoDB _id instead of client id
-        updatedFood, 
-        weekStartDateStr
-      ).pipe(
-        tap(response => {
-          console.log('Food item updated on server:', response);
-        }),
-        catchError(error => {
-          console.error('Failed to update food on server:', error);
-          return of(null);
-        })
-      ).subscribe();
+  async updateFoodItem(foodItemId: string, updatedFood: FoodItem): Promise<void> {
+    const currentUser = this.authService.currentUser();
+    const selectedDayData = this.selectedDay();
+
+    if (!currentUser || !currentUser.uid) {
+      console.error('User not logged in. Cannot update food item.');
+      return;
+    }
+    if (!selectedDayData || !selectedDayData.date) {
+      console.error('No selected day to update food item in.');
+      return;
+    }
+    if (!foodItemId) {
+      console.error('Food item ID is missing. Cannot update.');
+      return;
+    }
+
+    const userId = currentUser.uid;
+    const dateStr = this.formatDate(selectedDayData.date);
+    const dailyLogDocId = `${userId}_${dateStr}`;
+    const dailyLogDocRef = doc(this.firestore, `${USER_DAILY_LOGS_COLLECTION}/${dailyLogDocId}`);
+
+    try {
+      await runTransaction(this.firestore, async (transaction) => {
+        const dailyLogSnap = await transaction.get(dailyLogDocRef);
+        if (!dailyLogSnap.exists()) {
+          throw new Error("Daily log document not found. Cannot update food item.");
+        }
+
+        const existingData = dailyLogSnap.data() as DailyNutrition;
+        let currentFoodItems = existingData.foodItems || [];
+        
+        const foodIndex = currentFoodItems.findIndex(item => item.id === foodItemId || item._id === foodItemId);
+
+        if (foodIndex === -1) {
+          throw new Error("Food item not found in the daily log. Cannot update.");
+        }
+
+        // Update the specific food item
+        currentFoodItems[foodIndex] = { ...currentFoodItems[foodIndex], ...updatedFood, id: foodItemId }; // Ensure ID consistency
+
+        const newTotals = this.calculateTotalsForFoodItems(currentFoodItems);
+        const dailyLogData: DailyNutrition = {
+          userId: userId,
+          date: dateStr,
+          foodItems: currentFoodItems,
+          ...newTotals
+        };
+        transaction.set(dailyLogDocRef, dailyLogData); // Overwrite with updated data
+      });
+
+      console.log('Food item updated in Firestore successfully.');
+      this.loadDailyData(selectedDayData.date); // Refresh _selectedDay
+      this.refreshWeeklyData(); // Refresh week view
+    } catch (error) {
+      console.error('Error updating food item in Firestore:', error);
     }
   }
 
-  // Delete a food item
-  deleteFoodItem(foodItemId: string): void {
-    const currentDayIndex = this.currentDayIndex();
-    const currentDay = this.weeklyNutrition()[currentDayIndex];
-    
-    const foodIndex = currentDay.foodItems.findIndex(item => 
-      (item.id?.toString() === foodItemId) || (item._id?.toString() === foodItemId)
-    );
-    if (foodIndex !== -1) {
-      // Create copies for UI update
-      const updatedNutrition = [...this.weeklyNutrition()];
-      const updatedDay = { ...updatedNutrition[currentDayIndex] };
-      
-      // Remove the food item
-      updatedDay.foodItems = updatedDay.foodItems.filter(item => 
-        (item.id?.toString() !== foodItemId) && (item._id?.toString() !== foodItemId)
-      );
-      
-      // Recalculate totals
-      this.calculateDayTotals(updatedDay);
-      
-      // Update the current day in the weekly nutrition
-      updatedNutrition[currentDayIndex] = updatedDay;
-      
-      // Update UI
-      this.weeklyNutrition.set(updatedNutrition);
-      
-      // Get the current week start date for API call
-      const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
-      
-      // Send to server
-      this.apiService.deleteFoodFromDay(currentDayIndex, parseInt(foodItemId), weekStartDateStr).pipe(
-        tap(response => {
-          console.log('Food item deleted on server:', response);
-        }),
-        catchError(error => {
-          console.error('Failed to delete food on server:', error);
-          return of(null);
-        })
-      ).subscribe();
+  async deleteFoodItem(foodItemId: string): Promise<void> {
+    const currentUser = this.authService.currentUser();
+    const selectedDayData = this.selectedDay();
+
+    if (!currentUser || !currentUser.uid) {
+      console.error('User not logged in. Cannot delete food item.');
+      return;
+    }
+    if (!selectedDayData || !selectedDayData.date) {
+      console.error('No selected day to delete food item from.');
+      return;
+    }
+    if (!foodItemId) {
+      console.error('Food item ID is missing. Cannot delete.');
+      return;
+    }
+
+    const userId = currentUser.uid;
+    const dateStr = this.formatDate(selectedDayData.date);
+    const dailyLogDocId = `${userId}_${dateStr}`;
+    const dailyLogDocRef = doc(this.firestore, `${USER_DAILY_LOGS_COLLECTION}/${dailyLogDocId}`);
+
+    try {
+      await runTransaction(this.firestore, async (transaction) => {
+        const dailyLogSnap = await transaction.get(dailyLogDocRef);
+        if (!dailyLogSnap.exists()) {
+          // If the log doesn't exist, there's nothing to delete.
+          console.warn("Daily log document not found. Cannot delete food item.");
+          return; 
+        }
+
+        const existingData = dailyLogSnap.data() as DailyNutrition;
+        let currentFoodItems = existingData.foodItems || [];
+        
+        const updatedFoodItems = currentFoodItems.filter(item => item.id !== foodItemId && item._id !== foodItemId);
+
+        if (updatedFoodItems.length === currentFoodItems.length) {
+          console.warn("Food item not found in the daily log. No deletion performed.");
+          // No change, so no need to update Firestore, but good to log.
+          return;
+        }
+
+        const newTotals = this.calculateTotalsForFoodItems(updatedFoodItems);
+        
+        // If all food items are removed, consider deleting the document or leaving it with empty foodItems array.
+        // For now, update with empty array.
+        const dailyLogData: DailyNutrition = {
+          userId: userId,
+          date: dateStr,
+          foodItems: updatedFoodItems,
+          ...newTotals
+        };
+        transaction.set(dailyLogDocRef, dailyLogData);
+      });
+
+      console.log('Food item deleted from Firestore successfully.');
+      this.loadDailyData(selectedDayData.date); // Refresh _selectedDay
+      this.refreshWeeklyData(); // Refresh week view
+    } catch (error) {
+      console.error('Error deleting food item from Firestore:', error);
     }
   }
 
-  // Add this method to the NutritionService class
-  private calculateDayTotals(day: DailyNutrition): void {
-    day.totalCalories = day.foodItems.reduce((sum, item) => sum + item.calories, 0);
-    day.totalProtein = day.foodItems.reduce((sum, item) => sum + item.protein, 0);
-    day.totalCarbs = day.foodItems.reduce((sum, item) => sum + item.carbs, 0);
-    day.totalFat = day.foodItems.reduce((sum, item) => sum + item.fat, 0);
-  }
+  // private calculateDayTotals(day: DailyNutrition): void { // Replaced by calculateTotalsForFoodItems or done within transactions
+  //   day.totalCalories = day.foodItems.reduce((sum, item) => sum + item.calories, 0);
+  //   day.totalProtein = day.foodItems.reduce((sum, item) => sum + item.protein, 0);
+  //   day.totalCarbs = day.foodItems.reduce((sum, item) => sum + item.carbs, 0);
+  //   day.totalFat = day.foodItems.reduce((sum, item) => sum + item.fat, 0);
+  // }
 
   navigateToDay(dayIndex: number): void {
-    if (dayIndex >= 0 && dayIndex < this.weeklyNutrition().length) {
+    // This method might need adjustment based on how weeklyNutrition is structured with Firestore data.
+    // It assumes weeklyNutrition() is an array of DailyNutrition objects for the current week.
+    const currentWeekData = this.weeklyNutrition();
+    if (dayIndex >= 0 && dayIndex < currentWeekData.length) {
       this.currentDayIndex.set(dayIndex);
+      // Also update _selectedDay to reflect the navigation within the week view
+      const newSelectedDayData = currentWeekData[dayIndex];
+      if (newSelectedDayData && newSelectedDayData.date) {
+         this._selectedDay.set({
+            date: new Date(newSelectedDayData.date), // Ensure it's a Date object
+            foodItems: newSelectedDayData.foodItems || []
+        });
+      } else {
+        // Fallback if data is somehow missing for that day index
+        const fallbackDate = addDays(this.weekStartDate(), dayIndex);
+        this._selectedDay.set({ date: fallbackDate, foodItems: [] });
+      }
     }
   }
 
@@ -427,64 +450,142 @@ export class NutritionService {
   }
 
   // Add this method to your NutritionService class
-  reorderFoodItems(reorderedItems: FoodItem[]): void {
-    const updatedNutrition = [...this.weeklyNutrition()];
+  async reorderFoodItems(reorderedItems: FoodItem[]): Promise<void> {
     const dayIndex = this.currentDayIndex();
+    const weeklyData = this.weeklyNutrition();
+
+    if (dayIndex < 0 || dayIndex >= weeklyData.length) {
+      console.error('Invalid day index for reordering food items.');
+      return;
+    }
+
+    const currentDayData = weeklyData[dayIndex];
+    if (!currentDayData || !currentDayData.date) {
+      console.error('Current day data or date is missing for reordering.');
+      return;
+    }
     
-    // Update the food items array with the new order
-    updatedNutrition[dayIndex] = {
-      ...updatedNutrition[dayIndex],
+    // Optimistically update UI state
+    const updatedWeeklyData = [...weeklyData];
+    updatedWeeklyData[dayIndex] = {
+      ...currentDayData,
       foodItems: reorderedItems
     };
-    
-    // Update the state
-    this.weeklyNutrition.set(updatedNutrition);
+    this.weeklyNutrition.set(updatedWeeklyData);
+
+    // Persist to Firestore
+    const currentUser = this.authService.currentUser();
+    if (!currentUser || !currentUser.uid) {
+      console.error('User not logged in. Cannot save reordered food items.');
+      // Optionally revert UI update here if strict consistency is required without login
+      return;
+    }
+
+    const userId = currentUser.uid;
+    // Ensure currentDayData.date is treated as a Date object if it's a string from Firestore
+    const dateStr = this.formatDate(new Date(currentDayData.date)); 
+    const dailyLogDocId = `${userId}_${dateStr}`;
+    const dailyLogDocRef = doc(this.firestore, `${USER_DAILY_LOGS_COLLECTION}/${dailyLogDocId}`);
+
+    try {
+      // We only update the foodItems field. If the document doesn't exist,
+      // this will fail, which is okay as reordering implies items exist.
+      // If it could be that a day has items locally but not in Firestore yet (e.g. offline),
+      // then setDoc with merge might be needed, but that implies creating a new log.
+      // For reordering, it's assumed the log and items exist.
+      await updateDoc(dailyLogDocRef, { foodItems: reorderedItems });
+      console.log('Food items reordered and saved to Firestore.');
+      // Refresh the selected day's data to ensure it's in sync, though UI is already updated.
+      // this.loadDailyData(new Date(currentDayData.date)); // Might be redundant if UI is source of truth
+    } catch (error) {
+      console.error('Error saving reordered food items to Firestore:', error);
+      // Revert optimistic UI update if Firestore update fails
+      this.weeklyNutrition.set(weeklyData); // Revert to original weeklyData
+      // Optionally, show an error to the user
+    }
   }
 
-  // Load data for a specific date
+  // Load data for a specific date from Firestore
   loadDailyData(date: Date): void {
-    const dateStr = this.formatDate(date);
-    
-    this.apiService.getDailyNutrition(dateStr).pipe(
-      tap(data => {
-        this._selectedDay.set({
-          date: date,
-          foodItems: data.foodItems || []
-        });
+    const currentUser = this.authService.currentUser();
+    if (!currentUser || !currentUser.uid) {
+      // console.warn('No user logged in, cannot load daily data.'); // Already logged in loadWeeklyNutrition
+      this._selectedDay.set({ date: date, foodItems: [] });
+      return;
+    }
+    const userId = currentUser.uid;
+    const dateStr = this.formatDate(date); // YYYY-MM-DD format
+    const docId = `${userId}_${dateStr}`;
+    const dailyLogDocRef = doc(this.firestore, `${USER_DAILY_LOGS_COLLECTION}/${docId}`);
+
+    docData(dailyLogDocRef).pipe(
+      map((logData: any) => { // Type as DailyNutrition if structure matches
+        if (logData && logData.foodItems) {
+          return {
+            date: date, // Keep the original Date object
+            foodItems: logData.foodItems.map((item: any) => ({...item, id: item.id || item._id})) as FoodItem[] // Ensure 'id' field
+          };
+        } else {
+          return { date: date, foodItems: [] };
+        }
       }),
+      tap(dayData => this._selectedDay.set(dayData)),
       catchError(error => {
-        console.error('Error loading daily data:', error);
-        // Reset to empty state for this day
-        this._selectedDay.set({
-          date: date,
-          foodItems: []
-        });
-        return of(null);
+        console.error('Error loading daily data from Firestore:', error);
+        this._selectedDay.set({ date: date, foodItems: [] }); // Reset on error
+        return of({ date: date, foodItems: [] }); // Or handle error appropriately
       })
     ).subscribe();
   }
   
-  // Load nutrition goals from API
+  // Load nutrition goals from Firestore
   private loadNutritionGoals(): void {
-    this.apiService.getNutritionGoals().pipe(
-      tap(goals => {
-        this.nutritionGoals.set(goals);
+    const currentUser = this.authService.currentUser();
+    if (!currentUser || !currentUser.uid) {
+      // console.warn('No user logged in, cannot load nutrition goals.'); // Already logged in constructor
+      this.nutritionGoals.set({ calorieGoal: 2000, proteinGoal: 150, carbsGoal: 200, fatGoal: 65 }); // Default
+      return;
+    }
+    const userId = currentUser.uid;
+    const goalsDocRef = doc(this.firestore, `${USER_GOALS_COLLECTION}/${userId}`);
+    
+    docData(goalsDocRef).pipe(
+      tap((goals: any) => {
+        if (goals) {
+          this.nutritionGoals.set(goals);
+        } else {
+          // No goals set for user, use defaults (already set in nutritionGoals signal definition)
+          // Or ensure default object is set if Firestore returns null/undefined for a non-existent doc
+          this.nutritionGoals.set({ calorieGoal: 2000, proteinGoal: 150, carbsGoal: 200, fatGoal: 65 });
+          console.log('No nutrition goals found for user, using defaults.');
+        }
       }),
       catchError(error => {
-        console.error('Error loading nutrition goals:', error);
+        console.error('Error loading nutrition goals from Firestore:', error);
+        // Fallback to defaults in case of error (already set in nutritionGoals signal definition)
+        this.nutritionGoals.set({ calorieGoal: 2000, proteinGoal: 150, carbsGoal: 200, fatGoal: 65 });
         return of(null);
       })
     ).subscribe();
   }
   
-  // Update nutrition goals
-  updateNutritionGoals(goals: any): void {
-    this.apiService.updateNutritionGoals(goals).pipe(
+  // Update nutrition goals in Firestore
+  updateNutritionGoals(goals: { calorieGoal: number; proteinGoal: number; carbsGoal: number; fatGoal: number; }): void {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser || !currentUser.uid) {
+      // console.error('No user logged in, cannot update nutrition goals.'); // Logged in constructor
+      return;
+    }
+    const userId = currentUser.uid;
+    const goalsDocRef = doc(this.firestore, `${USER_GOALS_COLLECTION}/${userId}`);
+    
+    from(setDoc(goalsDocRef, goals, { merge: true })).pipe(
       tap(() => {
-        this.nutritionGoals.set(goals);
+        this.nutritionGoals.set(goals); // Only update the main signal
+        // console.log('Nutrition goals updated in Firestore.');
       }),
       catchError(error => {
-        console.error('Error updating nutrition goals:', error);
+        console.error('Error updating nutrition goals in Firestore:', error);
         return of(null);
       })
     ).subscribe();
@@ -495,230 +596,216 @@ export class NutritionService {
     return date.toISOString().split('T')[0];
   }
   
-  // Handle food item move (for drag and drop)
-  handleFoodMove(event: { foodItemId: number, sourceDayIndex: number, targetDayIndex: number }): void {
-    const { foodItemId, sourceDayIndex, targetDayIndex } = event;
-    
-    // Find the food item in the source day
-    const sourceDay = this.weeklyNutrition()[sourceDayIndex];
-    const foodItemIndex = sourceDay.foodItems.findIndex(item => item.id === foodItemId);
-    
-    if (foodItemIndex === -1) {
-      console.error('Food item not found in source day');
+  async handleFoodMove(event: { foodItemId: string, sourceDate: Date, targetDate: Date }): Promise<void> {
+    const { foodItemId, sourceDate, targetDate } = event;
+    const currentUser = this.authService.currentUser();
+
+    if (!currentUser || !currentUser.uid) {
+      console.error('User not logged in. Cannot move food item.');
       return;
     }
-    
-    // Get the food item
-    const foodItem = { ...sourceDay.foodItems[foodItemIndex] };
-    
-    // Create updated nutrition data
-    const updatedNutrition = [...this.weeklyNutrition()];
-    
-    // Remove from source day
-    const updatedSourceDay = { ...updatedNutrition[sourceDayIndex] };
-    updatedSourceDay.foodItems = updatedSourceDay.foodItems.filter(item => item.id !== foodItemId);
-    this.calculateDayTotals(updatedSourceDay);
-    updatedNutrition[sourceDayIndex] = updatedSourceDay;
-    
-    // Add to target day
-    const updatedTargetDay = { ...updatedNutrition[targetDayIndex] };
-    updatedTargetDay.foodItems = [...updatedTargetDay.foodItems, foodItem];
-    this.calculateDayTotals(updatedTargetDay);
-    updatedNutrition[targetDayIndex] = updatedTargetDay;
-    
-    // Update UI
-    this.weeklyNutrition.set(updatedNutrition);
-    
-    // Get the current week start date for API call
-    const weekStartDateStr = format(this.weekStartDate(), 'yyyy-MM-dd');
-    
-    // Send to server
-    this.apiService.moveFoodBetweenDays(sourceDayIndex, targetDayIndex, foodItemId, weekStartDateStr).pipe(
-      tap(response => {
-        console.log('Food item moved on server:', response);
-      }),
-      catchError(error => {
-        console.error('Failed to move food on server:', error);
-        return of(null);
-      })
-    ).subscribe();
+    if (!foodItemId || !sourceDate || !targetDate) {
+      console.error('Missing data for food move.');
+      return;
+    }
+     // Prevent moving to the same day - though UI should ideally prevent this scenario
+    if (this.isSameDay(sourceDate, targetDate)) {
+        console.warn('Source and target dates are the same. No move operation performed.');
+        return;
+    }
+
+    const userId = currentUser.uid;
+    const sourceDateStr = this.formatDate(sourceDate);
+    const targetDateStr = this.formatDate(targetDate);
+
+    const sourceDocId = `${userId}_${sourceDateStr}`;
+    const targetDocId = `${userId}_${targetDateStr}`;
+
+    const sourceDocRef = doc(this.firestore, `${USER_DAILY_LOGS_COLLECTION}/${sourceDocId}`);
+    const targetDocRef = doc(this.firestore, `${USER_DAILY_LOGS_COLLECTION}/${targetDocId}`);
+
+    try {
+      let foodItemToMove: FoodItem | undefined;
+
+      await runTransaction(this.firestore, async (transaction) => {
+        const sourceSnap = await transaction.get(sourceDocRef);
+        const targetSnap = await transaction.get(targetDocRef);
+
+        if (!sourceSnap.exists()) {
+          // This case should ideally not happen if food item exists on sourceDate
+          console.error("Source day log does not exist. Cannot move item.");
+          throw new Error("Source day log does not exist.");
+        }
+        
+        let sourceData = sourceSnap.data() as DailyNutrition;
+        // Ensure foodItems is an array, default to empty if undefined or null
+        let sourceFoodItems = Array.isArray(sourceData.foodItems) ? sourceData.foodItems : [];
+        
+        const itemIndex = sourceFoodItems.findIndex(item => (item.id === foodItemId || item._id === foodItemId));
+        if (itemIndex === -1) {
+          console.error("Food item not found in source day. Cannot move item.");
+          throw new Error("Food item not found in source day.");
+        }
+
+        foodItemToMove = { ...sourceFoodItems[itemIndex] }; 
+        sourceFoodItems.splice(itemIndex, 1); 
+
+        const newSourceTotals = this.calculateTotalsForFoodItems(sourceFoodItems);
+        transaction.set(sourceDocRef, { ...sourceData, foodItems: sourceFoodItems, ...newSourceTotals });
+
+        let targetFoodItems: FoodItem[] = [];
+        let targetData: Partial<DailyNutrition> = {};
+
+        if (targetSnap.exists()) {
+          targetData = targetSnap.data() as DailyNutrition;
+          // Ensure foodItems is an array, default to empty if undefined or null
+          targetFoodItems = Array.isArray(targetData.foodItems) ? targetData.foodItems : [];
+        } else {
+          // If target day log doesn't exist, initialize with basic structure
+          targetData = { userId, date: targetDateStr };
+        }
+        
+        targetFoodItems.push(foodItemToMove); // Add item to target
+        const newTargetTotals = this.calculateTotalsForFoodItems(targetFoodItems);
+        
+        transaction.set(targetDocRef, { ...targetData, foodItems: targetFoodItems, ...newTargetTotals }, { merge: true });
+      });
+
+      console.log('Food item moved successfully in Firestore.');
+      // Refresh data for both affected days and the current week view
+      this.loadDailyData(sourceDate);
+      // Only load target if it's different from source to avoid double load if something went wrong with date check
+      if (!this.isSameDay(sourceDate, targetDate)) {
+        this.loadDailyData(targetDate);
+      }
+      this.refreshWeeklyData();
+    } catch (error) {
+      console.error('Error moving food item:', error);
+      // Potentially add user-facing error message here
+    }
   }
 
-  private loadWeeklyNutrition(): void {
-    this.isLoadingWeeklyData.set(true);
-    
-    const weekKey = this.getWeekKey(this.currentWeekDate());
-    
-    // Check if we already have data for this week in our cache
-    if (this.nutritionDataByWeek.has(weekKey)) {
-      console.log('Loading week data from local cache');
-      this.weeklyNutrition.set(this.nutritionDataByWeek.get(weekKey)!);
+  // Returns Observable that completes when data is loaded and signals are set.
+  loadWeeklyNutrition(): Observable<void> {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser || !currentUser.uid) {
+      this.weeklyNutrition.set(this.createEmptyWeekData(this.currentWeekDate()));
       this.isLoadingWeeklyData.set(false);
-      return;
+      return of(undefined); // Or throwError if preferred for unauthenticated state
     }
-    
-    // Format the date as ISO string and pass to API
-    const weekStartDate = startOfWeek(this.currentWeekDate());
-    const weekStartDateStr = weekStartDate.toISOString();
-    
-    this.apiService.getWeeklyNutrition(weekStartDateStr).pipe(
-      tap(response => {
-        console.log('Weekly nutrition loaded from API:', response);
-        
-        let weekData: DailyNutrition[] = [];
-        
-        if (response.weekData && Array.isArray(response.weekData)) {
-          // Create a map of existing data by date
-          const existingDataMap = new Map<string, DailyNutrition>();
-          response.weekData.forEach((day: DailyNutrition) => {
-            const dateKey = new Date(day.date).toISOString().split('T')[0];
-            existingDataMap.set(dateKey, day);
-          });
-          // Create a full week array (7 days), using existing data or empty days
-          const emptyWeekData = this.createEmptyWeekData(weekStartDate);
-          weekData = emptyWeekData.map(emptyDay => {
-            const dateKey = new Date(emptyDay.date).toISOString().split('T')[0];
-            return existingDataMap.get(dateKey) || emptyDay;
-          });
-        } else {
-          // No data or invalid format, create empty week
-          weekData = this.createEmptyWeekData(weekStartDate);
-        }
-        
-        this.weeklyNutrition.set(weekData);
-        
-        // Use the backend day index directly without adjustment
-        if (typeof response.currentDayIndex === 'number') {
-          console.log('Setting day index from server:', response.currentDayIndex);
-          this.currentDayIndex.set(response.currentDayIndex);
-        }
-        
-        // Store the updated data for this week
-        this.saveCurrentWeekData();
+
+    this.isLoadingWeeklyData.set(true);
+    const userId = currentUser.uid;
+    const weekViewStart = startOfWeek(this.currentWeekDate(), { weekStartsOn: 1 });
+    const weekViewEnd = endOfWeek(this.currentWeekDate(), { weekStartsOn: 1 });
+    const startDateStr = this.formatDate(weekViewStart);
+    const endDateStr = this.formatDate(weekViewEnd);
+
+    const logsCollectionRef = collection(this.firestore, USER_DAILY_LOGS_COLLECTION);
+    const q = query(logsCollectionRef,
+                    where('userId', '==', userId),
+                    where('date', '>=', startDateStr),
+                    where('date', '<=', endDateStr)
+                  );
+
+    return collectionData(q, { idField: 'docId' }).pipe(
+      map((dailyLogsFromFirestore: DailyNutrition[]) => {
+        const template = this.createEmptyWeekData(this.currentWeekDate());
+        dailyLogsFromFirestore.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const weekWithData = template.map(dayInTemplate => {
+          const foundLog = dailyLogsFromFirestore.find(
+            log => this.formatDate(new Date(log.date)) === this.formatDate(new Date(dayInTemplate.date))
+          );
+          const foodItems = foundLog && Array.isArray(foundLog.foodItems) ? foundLog.foodItems.map(item => ({...item, id: item.id || item._id})) : [];
+          return foundLog ? { ...dayInTemplate, ...foundLog, date: new Date(foundLog.date), foodItems } : dayInTemplate;
+        });
+        return weekWithData;
+      }),
+      tap(processedWeekData => {
+        this.weeklyNutrition.set(processedWeekData);
+        // Caller is responsible for calling navigateToDay if needed after subscription.
+        // For example, navigateToWeekContaining will handle this.
       }),
       catchError(error => {
-        console.error('Error loading weekly nutrition data:', error);
-        // Fall back to local mock data if API fails
-        const emptyWeekData = this.createEmptyWeekData(weekStartDate);
-        this.weeklyNutrition.set(emptyWeekData);
-        // Cache the empty data
-        this.nutritionDataByWeek.set(weekKey, emptyWeekData);
-        return of(null);
+        console.error('Error loading weekly nutrition from Firestore:', error);
+        this.weeklyNutrition.set(this.createEmptyWeekData(this.currentWeekDate()));
+        return of([]); // Propagate empty array or throwError
       }),
+      mapTo(undefined), // Ensure Observable<void>
       finalize(() => {
         this.isLoadingWeeklyData.set(false);
       })
-    ).subscribe();
+    );
   }
 
-  // Public method to refresh weekly data
-  refreshWeeklyData(): void {
-    this.loadWeeklyNutrition();
+  refreshWeeklyData(): Observable<void> { // Also return Observable<void>
+    return this.loadWeeklyNutrition();
   }
-
-  // Create empty week data structure starting from a specific date
-  private createEmptyWeekData(startDate: Date = new Date()): DailyNutrition[] {
-    const weekStartDate = startOfWeek(startDate);
+  
+  private createEmptyWeekData(weekStartDateInput: Date = new Date()): DailyNutrition[] {
+    // Ensure that the week data always starts from Monday, consistent with getTodayIndex and loadWeeklyNutrition
+    const actualWeekStartDate = startOfWeek(weekStartDateInput, { weekStartsOn: 1 }); 
     
-    return Array(7).fill(null).map((_, index) => {
-      const date = addDays(weekStartDate, index);
+    return Array(7).fill(null).map((_, i) => {
+      const dateForDay = addDays(actualWeekStartDate, i);
       return {
-        date: date,
+        date: dateForDay, // Store as Date object
         foodItems: [],
         totalCalories: 0,
         totalProtein: 0,
         totalCarbs: 0,
         totalFat: 0
+        // No userId here, it's part of the document structure in Firestore
       };
     });
   }
 
-  // Navigation methods
   goToPreviousWeek() {
-    // Save current week data before navigating
-    this.saveCurrentWeekData();
-    
-    const prevWeek = subWeeks(this.currentWeekDate(), 1);
-    this.currentWeekDate.set(prevWeek);
-    this.loadWeeklyNutrition();
+    // No need to save current week data explicitly with Firestore backend, reads are live.
+    const prevWeekDate = subWeeks(this.currentWeekDate(), 1);
+    this.currentWeekDate.set(prevWeekDate);
+    return this.loadWeeklyNutrition(); // Return Observable<void>
   }
 
-  goToNextWeek() {
-    // Save current week data before navigating
-    this.saveCurrentWeekData();
-    
-    const nextWeek = addWeeks(this.currentWeekDate(), 1);
-    this.currentWeekDate.set(nextWeek);
-    this.loadWeeklyNutrition();
+  goToNextWeek(): Observable<void> { // Add return type
+    const nextWeekDate = addWeeks(this.currentWeekDate(), 1);
+    this.currentWeekDate.set(nextWeekDate);
+    return this.loadWeeklyNutrition(); // Return Observable<void>
   }
 
-  goToCurrentWeek() {
-    this.currentWeekDate.set(new Date());
-    this.loadWeeklyNutrition();
+  goToCurrentWeek(): Observable<void> { // Add return type
+    this.currentWeekDate.set(new Date()); // Set to today
+    return this.loadWeeklyNutrition(); // Return Observable<void>
   }
 
-  // Store the current week's data in our local cache
-  private saveCurrentWeekData(): void {
-    const weekKey = this.getWeekKey(this.currentWeekDate());
-    this.nutritionDataByWeek.set(weekKey, this.weeklyNutrition());
-  }
-
-  clearCache(): void {
-    this.nutritionDataByWeek.clear();
-    console.log('Nutrition cache cleared');
-  }
-  
-  // Get a unique key for a week based on its start date
-  private getWeekKey(date: Date): string {
-    const weekStart = startOfWeek(date);
-    
-    // Get userId from localStorage directly if authService isn't available
-    let userId = 'default';
-    try {
-      const userData = localStorage.getItem('user_data');
-      if (userData) {
-        const user = JSON.parse(userData);
-        if (user && user.id) {
-          userId = String(user.id);
-        }
-      }
-    } catch (e) {
-      console.error('Error getting user ID:', e);
-    }
-    
-    return `${userId}_${format(weekStart, 'yyyy-MM-dd')}`;
-  }
+  // No longer need saveCurrentWeekData, clearCache, or getWeekKey with Firestore as the backend.
+  // nutritionDataByWeek (Map) is also removed.
   
   // Navigate to the week containing the given date
-  navigateToWeekContaining(date: Date): void {
+  // This will trigger loadWeeklyNutrition which then updates currentDayIndex and _selectedDay
+  navigateToWeekContaining(date: Date): Observable<void> {
     console.log('Navigating to week containing date:', date);
-    
-    // Save current week data before navigating
-    this.saveCurrentWeekData();
-    
-    // Set the current week date to the provided date
     this.currentWeekDate.set(new Date(date));
     
-    // Load the nutrition data for the week containing this date
-    this.loadWeeklyNutrition();
-    
-    // After loading the week data, find and navigate to the specific day
-    setTimeout(() => {
-      // Get the days of this week
-      const daysInWeek = this.getAllDays();
-      
-      // Find the day index that matches our target date
-      const targetDayIndex = daysInWeek.findIndex(day => {
-        return this.isSameDay(new Date(day.date), date);
-      });
-      
-      console.log('Found target day index:', targetDayIndex);
-      
-      // If we found a matching day, navigate to it
-      if (targetDayIndex !== -1) {
-        this.navigateToDay(targetDayIndex);
-      }
-    }, 100); // Short delay to ensure week data is loaded
+    return this.loadWeeklyNutrition().pipe(
+      tap(() => {
+        // After week data is loaded and weeklyNutrition signal is updated by loadWeeklyNutrition,
+        // find the index of the target date and navigate to it.
+        const weekData = this.weeklyNutrition();
+        const targetDayIndex = weekData.findIndex(d =>
+          this.formatDate(new Date(d.date)) === this.formatDate(new Date(date))
+        );
+        if (targetDayIndex !== -1) {
+          this.navigateToDay(targetDayIndex);
+        } else {
+          // If target date not found (e.g. an empty week was loaded), navigate to first day of the week
+          if (weekData.length > 0) {
+            this.navigateToDay(0);
+          }
+        }
+      }),
+      mapTo(undefined) // Ensure it returns Observable<void>
+    );
   }
   
   // Helper to check if two dates are the same day
@@ -729,8 +816,9 @@ export class NutritionService {
   }
 
   clearCacheAndRefresh(): void {
-    console.log('Clearing nutrition cache and refreshing data');
-    this.nutritionDataByWeek.clear();
-    this.loadWeeklyNutrition();
+    this.loadWeeklyNutrition().subscribe({ // Subscribe as this is a top-level action
+        next: () => console.log('Cache cleared and data refreshed.'),
+        error: err => console.error('Error during clearCacheAndRefresh:', err)
+    });
   }
-} 
+}

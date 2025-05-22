@@ -53,7 +53,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
                   <app-nutrition-progress-bar
                     label="Calories"
                     [currentValue]="currentDay().totalCalories"
-                    [goalValue]="calorieGoal"
+                    [goalValue]="calorieGoal()"
                     unit="kcal"
                     color="ccal"
                     >
@@ -62,7 +62,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
                   <app-nutrition-progress-bar
                     label="Protein"
                     [currentValue]="currentDay().totalProtein"
-                    [goalValue]="proteinGoal"
+                    [goalValue]="proteinGoal()"
                     unit="g"
                     color="protein">
                   </app-nutrition-progress-bar>
@@ -70,7 +70,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
                   <app-nutrition-progress-bar
                     label="Carbs"
                     [currentValue]="currentDay().totalCarbs"
-                    [goalValue]="carbsGoal"
+                    [goalValue]="carbsGoal()"
                     unit="g"
                     color="carbs">
                   </app-nutrition-progress-bar>
@@ -78,7 +78,7 @@ import { NutritionProgressBarComponent } from '../shared/nutrition-progress-bar/
                   <app-nutrition-progress-bar
                     label="Fat"
                     [currentValue]="currentDay().totalFat"
-                    [goalValue]="fatGoal"
+                    [goalValue]="fatGoal()"
                     unit="g"
                     color="fat">
                   </app-nutrition-progress-bar>
@@ -127,11 +127,11 @@ export class DashboardComponent implements OnInit {
     };
   });
   
-  // Convenience getters for nutritional goals
-  calorieGoal = this.nutritionService.getCalorieGoal();
-  proteinGoal = this.nutritionService.getProteinGoal();
-  carbsGoal = this.nutritionService.getCarbsGoal();
-  fatGoal = this.nutritionService.getFatGoal();
+  // Assigning public signals from NutritionService
+  calorieGoal = this.nutritionService.calorieGoal;
+  proteinGoal = this.nutritionService.proteinGoal;
+  carbsGoal = this.nutritionService.carbsGoal;
+  fatGoal = this.nutritionService.fatGoal;
   
   ngOnInit(): void {
     // No initialization needed

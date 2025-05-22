@@ -3,22 +3,21 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
-import { ApiStatusService } from '../../../services/api-status.service';
+// ApiStatusService has been removed
 
 @Component({
   selector: 'app-api-status',
   standalone: true,
   imports: [CommonModule, MatIconModule, MatTooltipModule, MatBadgeModule],
   template: `
-    <div class="api-status-indicator" [ngClass]="apiStatus()">
+    <div class="api-status-indicator connected">
       <mat-icon 
-        [matTooltip]="getStatusTooltip()"
-        [ngClass]="apiStatus()">
-        {{getStatusIcon()}}
+        matTooltip="Connected to Firebase"
+        class="connected">
+        cloud_done
       </mat-icon>
       <span class="status-label" *ngIf="showLabel">
-        {{apiStatus() === 'connected' ? 'Using API' : 
-          apiStatus() === 'disconnected' ? 'Using Mock Data' : 'Checking API...'}}
+        Firebase Connected
       </span>
     </div>
   `,
@@ -30,16 +29,8 @@ import { ApiStatusService } from '../../../services/api-status.service';
       border-radius: 16px;
       margin: 8px;
       
-      &.connected {
-        background-color: rgba(76, 175, 80, 0.1);
-      }
-      
-      &.disconnected {
-        background-color: rgba(255, 152, 0, 0.1);
-      }
-      
-      &.checking {
-        background-color: rgba(33, 150, 243, 0.1);
+      &.connected { // Only 'connected' class will be used now
+        background-color: rgba(76, 175, 80, 0.1); // Greenish background
       }
       
       mat-icon {
@@ -47,16 +38,8 @@ import { ApiStatusService } from '../../../services/api-status.service';
         height: 18px;
         width: 18px;
         
-        &.connected {
-          color: #4caf50;
-        }
-        
-        &.disconnected {
-          color: #ff9800;
-        }
-        
-        &.checking {
-          color: #2196f3;
+        &.connected { // Only 'connected' class will be used now
+          color: #4caf50; // Green icon color
         }
       }
       
@@ -68,30 +51,9 @@ import { ApiStatusService } from '../../../services/api-status.service';
   `
 })
 export class ApiStatusComponent {
-  private statusService = inject(ApiStatusService);
-  
-  apiStatus = this.statusService.apiStatus;
+  // ApiStatusService and related logic have been removed.
+  // The component now displays a static "Firebase Connected" status.
   showLabel = true; // Set to false for icon-only view
   
-  getStatusIcon(): string {
-    switch (this.apiStatus()) {
-      case 'connected':
-        return 'cloud_done';
-      case 'disconnected':
-        return 'cloud_off';
-      default:
-        return 'sync';
-    }
-  }
-  
-  getStatusTooltip(): string {
-    switch (this.apiStatus()) {
-      case 'connected':
-        return 'Connected to API - using real data';
-      case 'disconnected':
-        return 'API not available - using mock data';
-      default:
-        return 'Checking API status...';
-    }
-  }
+  // getStatusIcon and getStatusTooltip are no longer needed as status is static.
 }

@@ -1,24 +1,18 @@
 import { APP_INITIALIZER, ApplicationConfig, importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, NativeDateAdapter } from '@angular/material/core';
+import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
+import { getFirestore, provideFirestore } from '@angular/fire/firestore';
+import { getAuth, provideAuth } from '@angular/fire/auth';
+import { environment } from '../environments/environment';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
-import { ApiStatusService } from './services/api-status.service';
-
-// Function to initialize API status checking
-function initializeApiStatus(apiStatusService: ApiStatusService) {
-  return () => {
-    // Force immediate health check on app start
-    setTimeout(() => apiStatusService.checkApiStatus(), 1000);
-    return Promise.resolve();
-  };
-}
 
 // Default date formats
 export const MY_DATE_FORMATS = {
@@ -36,23 +30,21 @@ export const MY_DATE_FORMATS = {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptorsFromDi()), // Using withInterceptorsFromDi as per prompt
     provideAnimations(),
     importProvidersFrom(
       MatSnackBarModule,
       MatDatepickerModule,
-      MatNativeDateModule
+      MatNativeDateModule,
+      // Firebase providers
+      provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
+      provideFirestore(() => getFirestore()),
+      provideAuth(() => getAuth())
     ),
     // Datepicker providers
     { provide: DateAdapter, useClass: NativeDateAdapter },
     { provide: MAT_DATE_LOCALE, useValue: 'en-US' },
     { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
-    // Ensure ApiStatusService is initialized when the app starts
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initializeApiStatus,
-      deps: [ApiStatusService],
-      multi: true
-    }
+    // ApiStatusService and its initializer have been removed.
   ]
 };
