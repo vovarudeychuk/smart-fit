@@ -130,32 +130,32 @@ export class RegisterComponent {
   
   isLoading = signal(false);
   
-  onSubmit(): void {
+  async onSubmit(): Promise<void> { // Changed to async
     if (this.registerForm.valid) {
       this.isLoading.set(true);
+      const { username, email, password, firstName, lastName } = this.registerForm.value;
       
-      this.authService.register(this.registerForm.value).subscribe({
-        next: (response) => {
-          this.isLoading.set(false);
-          if (response.success) {
-            this.router.navigate(['/dashboard']);
-          } else {
-            this.snackBar.open(response.message || 'Registration failed', 'Close', {
-              duration: 5000,
-              horizontalPosition: 'center',
-              verticalPosition: 'bottom'
-            });
-          }
-        },
-        error: (error) => {
-          this.isLoading.set(false);
-          this.snackBar.open(error.message || 'Registration failed', 'Close', {
-            duration: 5000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom'
-          });
-        }
-      });
+      // Construct userData for the new AuthService.register method
+      // Using username as displayName. Alternatively, could use firstName + lastName.
+      const userData = {
+        email,
+        password,
+        displayName: username 
+      };
+      
+      try {
+        await this.authService.register(userData); // AuthService.register is now async
+        // Navigation will be handled by auth state listener or can be explicit here
+        this.router.navigate(['/dashboard']);
+      } catch (error: any) { // Catch error from async function
+        this.snackBar.open(error.message || 'Registration failed. Please try again.', 'Close', { // error.message comes from mapFirebaseAuthError
+          duration: 5000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        });
+      } finally {
+        this.isLoading.set(false);
+      }
     }
   }
   

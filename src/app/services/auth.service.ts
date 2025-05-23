@@ -1,147 +1,144 @@
 import { Injectable, inject, signal, EventEmitter } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, of, throwError } from 'rxjs';
-import { tap, map, catchError } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
+import { Observable, of } from 'rxjs'; // Removed throwError, catchError, map, tap
+import {
+  Auth,
+  authState,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  User as FirebaseUser, // Renamed to avoid conflict with local User interface
+  UserCredential
+} from '@angular/fire/auth';
 
+// Updated User interface for Firebase
 export interface User {
-  id: number;
-  username: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
+  uid: string;
+  email: string | null;
+  displayName?: string | null;
+  // Add other fields if they will be used, e.g., photoURL
 }
 
-export interface AuthResponse {
-  access_token: string;
-  user: User;
-  success?: boolean;
-  message?: string;
-}
+// AuthResponse is no longer needed with Firebase
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private http = inject(HttpClient);
+  private auth = inject(Auth);
   private router = inject(Router);
-  private baseUrl = environment.apiUrl;
-  
-  private tokenKey = 'auth_token';
-  private userKey = 'user_data';
-  
-  // State signals
-  isAuthenticated = signal<boolean>(this.hasValidToken());
-  currentUser = signal<User | null>(this.getUserFromStorage());
-  
-  // Add this event emitter
+  // Removed http, baseUrl, tokenKey, userKey
+
+  // State signals, initialized by authState subscription
+  isAuthenticated = signal<boolean>(false);
+  currentUser = signal<User | null>(null);
+
   userChanged = new EventEmitter<User | null>();
-  
-  login(username: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/auth/login`, { username, password })
-      .pipe(
-        tap(response => this.handleAuthResponse(response)),
-        catchError(error => {
-          console.error('Login failed:', error);
-          return throwError(() => new Error(error.error?.message || 'Login failed. Please try again.'));
-        }),
-      )
-  }
-  
-  register(userData: any): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/auth/register`, userData)
-      .pipe(
-        tap(response => {
-          if (response.success) {
-            this.handleAuthResponse(response);
-          }
-        }),
-        catchError(error => {
-          console.error('Registration failed:', error);
-          return throwError(() => new Error(error.error?.message || 'Registration failed. Please try again.'));
-        })
-      );
-  }
-  
-  logout(): void {
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.userKey);
-    this.isAuthenticated.set(false);
-    this.currentUser.set(null);
-    this.router.navigate(['/login']);
-  }
-  
-  getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
-  }
-  
-  private hasValidToken(): boolean {
-    const token = this.getToken();
-    // A more sophisticated check would validate the token's expiration
-    return !!token;
-  }
-  
-  private getUserFromStorage(): User | null {
-    const userData = localStorage.getItem(this.userKey);
-    return userData ? JSON.parse(userData) : null;
-  }
-  
-  private handleAuthResponse(response: AuthResponse): void {
-    if (response && response.access_token) {
-      localStorage.setItem(this.tokenKey, response.access_token);
-      localStorage.setItem(this.userKey, JSON.stringify(response.user));
-      this.isAuthenticated.set(true);
-      this.currentUser.set(response.user);
-      
-      // Emit event when user changes
-      this.userChanged.emit(response.user);
-    }
-  }
-  
-  getProfile(): Observable<User> {
-    return this.http.get<User>(`${this.baseUrl}/auth/profile`)
-      .pipe(
-        tap(user => {
-          localStorage.setItem(this.userKey, JSON.stringify(user));
-          this.currentUser.set(user);
-        }),
-        catchError(error => {
-          if (error.status === 401) {
-            this.logout();
-          }
-          return throwError(() => error);
-        })
-      );
-  }
 
-  // Verify token on app startup
-  verifyAuth(): Observable<boolean> {
-    if (!this.hasValidToken()) {
-      this.isAuthenticated.set(false);
-      return of(false);
-    }
-
-    // Try to fetch the profile to verify token
-    return this.http.get<User>(`${this.baseUrl}/auth/profile`).pipe(
-      map(user => {
-        // Update user data
-        localStorage.setItem(this.userKey, JSON.stringify(user));
+  constructor() {
+    authState(this.auth).subscribe((firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        const user: User = { // Map Firebase user to local User interface
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+        };
         this.currentUser.set(user);
         this.isAuthenticated.set(true);
-        return true;
-      }),
-      catchError(error => {
-        // If token is invalid, clear auth state
-        if (error.status === 401) {
-          this.logout();
-        }
-        return of(false);
-      })
-    );
+        this.userChanged.emit(user);
+      } else {
+        this.currentUser.set(null);
+        this.isAuthenticated.set(false);
+        this.userChanged.emit(null);
+      }
+    });
   }
 
-  associateUserData(): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/auth/associate-user-data`, {});
+  async login(email: string, password: string): Promise<UserCredential> {
+    try {
+      const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
+      // authState will handle updating signals
+      return userCredential;
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      // Map Firebase errors to user-friendly messages or rethrow
+      throw new Error(this.mapFirebaseAuthError(error));
+    }
   }
-} 
+
+  async register(userData: { email: string, password: string, displayName?: string }): Promise<UserCredential> {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(this.auth, userData.email, userData.password);
+      if (userData.displayName && userCredential.user) {
+        await updateProfile(userCredential.user, { displayName: userData.displayName });
+        // Update the local signal if needed, though authState should eventually reflect this
+        const currentUser = this.currentUser();
+        if (currentUser) {
+          this.currentUser.set({ ...currentUser, displayName: userData.displayName });
+        }
+      }
+      // authState will handle updating signals for new user creation
+      return userCredential;
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      throw new Error(this.mapFirebaseAuthError(error));
+    }
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await signOut(this.auth);
+      // authState will set currentUser to null and isAuthenticated to false
+      this.router.navigate(['/login']);
+    } catch (error: any) {
+      console.error('Logout failed:', error);
+      throw new Error(this.mapFirebaseAuthError(error));
+    }
+  }
+
+  private mapFirebaseAuthError(error: any): string {
+    if (!error.code) {
+      return 'An unexpected error occurred.';
+    }
+    switch (error.code) {
+      case 'auth/invalid-email':
+        return 'Invalid email address format.';
+      case 'auth/user-disabled':
+        return 'This user account has been disabled.';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'Invalid email or password.';
+      case 'auth/email-already-in-use':
+        return 'This email address is already in use.';
+      case 'auth/weak-password':
+        return 'The password is too weak. Please choose a stronger password.';
+      default:
+        return 'An authentication error occurred. Please try again.';
+    }
+  }
+
+  // getToken(): string | null { - REMOVED
+  // }
+
+  // private hasValidToken(): boolean { - REMOVED
+  // }
+
+  // private getUserFromStorage(): User | null { - REMOVED
+  // }
+
+  // private handleAuthResponse(response: AuthResponse): void { - REMOVED
+  // }
+  
+  // GETPROFILE METHOD
+  getProfile(): Observable<User | null> {
+    // This returns the current user from the signal.
+    // If additional profile data is needed from Firestore, a separate service will handle that.
+    return of(this.currentUser());
+  }
+
+  // VERIFYAUTH METHOD REMOVED (handled by authState)
+
+  // ASSOCIATEUSERDATA METHOD REMOVED
+}

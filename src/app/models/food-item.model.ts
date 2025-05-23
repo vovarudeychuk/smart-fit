@@ -1,6 +1,5 @@
 export interface FoodItem {
-  id?: number | string;
-  _id?: string;  // Add MongoDB _id property
+  id?: string; // Firestore document ID
   name: string;
   calories: number;
   protein: number; // in grams

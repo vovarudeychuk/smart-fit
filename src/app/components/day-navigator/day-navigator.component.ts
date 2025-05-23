@@ -374,8 +374,8 @@ export class DayNavigatorComponent implements OnInit {
             // Create a base food item with standardized values
             const baseFood: FoodItem = {
               ...foodItem,
-              // Create a new ID to avoid conflicts
-              id: Date.now(),
+              // Create a new ID to avoid conflicts (string type)
+              id: Date.now().toString(), 
               calories: foodItem.calories / (quantity * (servingSize / 100)),
               protein: foodItem.protein / (quantity * (servingSize / 100)),
               carbs: foodItem.carbs / (quantity * (servingSize / 100)),
@@ -399,7 +399,7 @@ export class DayNavigatorComponent implements OnInit {
               if (result) {
                 // If it's a move operation, remove from the original day
                 if (action === 'move') {
-                  this.nutritionService.deleteFoodItem(foodItem.id?.toString() || foodItem._id?.toString() || '');
+                  this.nutritionService.deleteFoodItem(foodItem.id?.toString() || ''); // Removed _id access
                 }
                 
                 // Navigate to the target date
@@ -432,8 +432,8 @@ export class DayNavigatorComponent implements OnInit {
         // Create a base food item with standardized values
         const baseFood: FoodItem = {
           ...foodItem,
-          // Create a new ID to avoid conflicts
-          id: Date.now(),
+          // Create a new ID to avoid conflicts (string type)
+          id: Date.now().toString(),
           calories: foodItem.calories / (quantity * (servingSize / 100)),
           protein: foodItem.protein / (quantity * (servingSize / 100)),
           carbs: foodItem.carbs / (quantity * (servingSize / 100)),

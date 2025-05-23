@@ -405,7 +405,7 @@ export class FoodListComponent {
   
   editFood(food: FoodItem): void {
     // Get ID safely using optional chaining
-    const foodId = food._id?.toString() || food.id?.toString();
+    const foodId = food.id; // _id removed, id is already string?
     
     if (!foodId) {
       console.error('Food item has no ID', food);
@@ -491,7 +491,7 @@ export class FoodListComponent {
               // Then create a copy with a new ID for the target date
               const foodCopy = {
                 ...result.food,
-                id: Date.now() // New unique ID for the copy
+                id: Date.now().toString() // New unique ID for the copy (string)
               };
               
               // Navigate to the target date
@@ -539,8 +539,12 @@ export class FoodListComponent {
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         // Get ID safely
-        const foodId = food.id || food._id;
-        this.nutritionService.deleteFoodItem(String(foodId));
+        const foodId = food.id; // _id removed
+        if (foodId) { // Ensure foodId is not undefined
+          this.nutritionService.deleteFoodItem(foodId); // foodId is already string
+        } else {
+          console.error('Cannot delete food item: ID is undefined.');
+        }
       }
     });
   }

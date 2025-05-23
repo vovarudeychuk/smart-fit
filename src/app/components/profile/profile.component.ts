@@ -11,17 +11,20 @@ import { AuthService, User } from '../../services/auth.service';
   imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule],
   template: `
     <div class="profile-container">
-      <mat-card class="profile-card">
+      <mat-card class="profile-card" *ngIf="user()">
         <mat-card-header>
           <div mat-card-avatar class="profile-avatar">
             <mat-icon>person</mat-icon>
           </div>
-          <mat-card-title>{{ user?.firstName || '' }} {{ user?.lastName || '' }}</mat-card-title>
-          <mat-card-subtitle>{{ user?.username }}</mat-card-subtitle>
+          <mat-card-title>{{ user()?.displayName || user()?.email || 'User Profile' }}</mat-card-title>
+          <mat-card-subtitle *ngIf="user()?.displayName && user()?.email">{{ user()?.email }}</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          <p><strong>Email:</strong> {{ user?.email }}</p>
-          <p><strong>Member since:</strong> {{ memberSince }}</p>
+          <p><strong>Email:</strong> {{ user()?.email }}</p>
+          <p *ngIf="user()?.uid"><strong>User ID:</strong> {{ user()?.uid }}</p> 
+          <!-- Optionally display UID for debugging or info -->
+          <p><strong>Member since:</strong> {{ memberSince }}</p> 
+          <!-- 'memberSince' is still current date, Firebase metadata.creationTime could be used in future -->
         </mat-card-content>
         <mat-card-actions>
           <button mat-button color="primary">Edit Profile</button>
@@ -50,8 +53,10 @@ import { AuthService, User } from '../../services/auth.service';
 })
 export class ProfileComponent {
   private authService = inject(AuthService);
-  user: User | null = this.authService.currentUser();
-  memberSince = new Date().toLocaleDateString();
+  // user is now a signal directly from AuthService
+  user = this.authService.currentUser; 
+  // memberSince is still the current date. Firebase user.metadata.creationTime could be used for actual creation date.
+  memberSince = new Date().toLocaleDateString(); 
   
   logout(): void {
     this.authService.logout();

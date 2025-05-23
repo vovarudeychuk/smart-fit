@@ -229,13 +229,13 @@ export class AppComponent implements OnInit {
   router = inject(Router);
   
   ngOnInit(): void {
-    // Verify authentication status on app startup
-    this.authService.verifyAuth().subscribe(isAuthenticated => {
-      if (!isAuthenticated) {
-        // If not authenticated, redirect to login
-        this.router.navigate(['/login']);
-      }
-    });
+    // The auth state is now managed reactively by AuthService using Firebase.
+    // Route guards or individual components should handle redirection based on authService.isAuthenticated().
+    // For example, a route guard could check authService.isAuthenticated() and redirect to '/login'.
+    // The main app component doesn't need to force a redirect on init this way anymore.
+    // If there's a desire to redirect on auth state changes globally,
+    // an effect within the AppComponent or AuthService listening to authState could be used.
+    // For now, removing this direct call to prevent the build error.
   }
   
   logout(): void {
