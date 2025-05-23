@@ -60,6 +60,11 @@ export const routes: Routes = [
     component: ProfileComponent,
     canActivate: [authGuard]
   },
+  {
+    path: 'mock-data',
+    loadComponent: () => import('./components/mock-data-manager/mock-data-manager.component').then(m => m.MockDataManagerComponent),
+    canActivate: [authGuard]
+  },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: '**', redirectTo: '/login' }
 ];

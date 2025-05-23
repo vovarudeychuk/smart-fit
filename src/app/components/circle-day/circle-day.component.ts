@@ -16,6 +16,7 @@ import { FoodItem } from '../../models/food-item.model';
       [class.past]="isPast"
       [class.future]="isFuture"
       [class.drop-target]="isDragOver"
+      [class.drop-success]="showSuccessAnimation"
       cdkDropList
       id="day-{{ dayIndex }}"
       [cdkDropListData]="dayIndex"
@@ -49,14 +50,75 @@ import { FoodItem } from '../../models/food-item.model';
       background-color: rgba(0, 0, 0, 0.08);
       color: rgba(0, 0, 0, 0.87);
       
-      &:hover {
-        background-color: rgba(103, 58, 183, 0.12);
-        transform: scale(1.05);
+      &.drop-target {
+        background: linear-gradient(135deg, rgba(103, 58, 183, 0.2), rgba(103, 58, 183, 0.3));
+        border: 3px solid #673ab7;
+        transform: scale(1.2);
+        box-shadow: 
+          0 0 20px rgba(103, 58, 183, 0.5),
+          0 0 40px rgba(103, 58, 183, 0.3),
+          inset 0 0 20px rgba(103, 58, 183, 0.1);
+        animation: 
+          dropZonePulse 1.2s ease-in-out infinite,
+          dropZoneGlow 2s ease-in-out infinite alternate,
+          dropZoneRipple 1.5s ease-out infinite;
+        z-index: 10;
+        position: relative;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: -6px;
+          left: -6px;
+          right: -6px;
+          bottom: -6px;
+          border-radius: 50%;
+          background: linear-gradient(45deg, 
+            transparent 40%, 
+            rgba(103, 58, 183, 0.2) 50%, 
+            transparent 60%);
+          animation: dropZoneRotate 2s linear infinite;
+          z-index: -1;
+        }
+        
+        &::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          border: 2px solid rgba(103, 58, 183, 0.6);
+          transform: translate(-50%, -50%) scale(1);
+          animation: dropZonePing 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        
+        .day-label {
+          color: white;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          animation: labelBounce 0.8s ease-in-out infinite alternate;
+        }
       }
       
-      &.drop-target {
-        border: 2px dashed #673ab7;
-        animation: pulse 1.5s infinite;
+      /* Enhanced hover with ripple effect */
+      &:hover:not(.drop-target) {
+        background-color: rgba(103, 58, 183, 0.12);
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(103, 58, 183, 0.2);
+        
+        .day-label {
+          transform: translateY(-1px);
+        }
+      }
+      
+      /* Success drop animation */
+      &.drop-success {
+        animation: dropSuccess 800ms cubic-bezier(0.25, 0.8, 0.25, 1);
+        
+        .day-label {
+          animation: successBounce 600ms cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
       }
       
       /* Past day styling - always applied when .past class is present */
@@ -216,12 +278,129 @@ import { FoodItem } from '../../models/food-item.model';
     @keyframes popIn {
       0% {
         transform: scale(0);
+        opacity: 0;
       }
-      70% {
-        transform: scale(1.2);
+      80% {
+        transform: scale(1.1);
       }
       100% {
         transform: scale(1);
+        opacity: 1;
+      }
+    }
+    
+    /* Drop zone animation keyframes */
+    @keyframes dropZonePulse {
+      0%, 100% {
+        transform: scale(1.2);
+      }
+      50% {
+        transform: scale(1.25);
+      }
+    }
+    
+    @keyframes dropZoneGlow {
+      0% {
+        box-shadow: 
+          0 0 20px rgba(103, 58, 183, 0.5),
+          0 0 40px rgba(103, 58, 183, 0.3),
+          inset 0 0 20px rgba(103, 58, 183, 0.1);
+      }
+      100% {
+        box-shadow: 
+          0 0 30px rgba(103, 58, 183, 0.7),
+          0 0 60px rgba(103, 58, 183, 0.4),
+          inset 0 0 30px rgba(103, 58, 183, 0.2);
+      }
+    }
+    
+    @keyframes dropZoneRipple {
+      0% {
+        box-shadow: 
+          0 0 20px rgba(103, 58, 183, 0.5),
+          0 0 40px rgba(103, 58, 183, 0.3),
+          0 0 0 0 rgba(103, 58, 183, 0.7),
+          0 0 0 0 rgba(103, 58, 183, 0.4);
+      }
+      50% {
+        box-shadow: 
+          0 0 20px rgba(103, 58, 183, 0.5),
+          0 0 40px rgba(103, 58, 183, 0.3),
+          0 0 0 10px rgba(103, 58, 183, 0),
+          0 0 0 20px rgba(103, 58, 183, 0);
+      }
+      100% {
+        box-shadow: 
+          0 0 20px rgba(103, 58, 183, 0.5),
+          0 0 40px rgba(103, 58, 183, 0.3),
+          0 0 0 20px rgba(103, 58, 183, 0),
+          0 0 0 40px rgba(103, 58, 183, 0);
+      }
+    }
+    
+    @keyframes dropZoneRotate {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    
+    @keyframes dropZonePing {
+      75%, 100% {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes labelBounce {
+      0% {
+        transform: translateY(0);
+      }
+      100% {
+        transform: translateY(-2px);
+      }
+    }
+    
+    /* Success animation keyframes */
+    @keyframes dropSuccess {
+      0% {
+        transform: scale(1.2);
+        background: linear-gradient(135deg, rgba(103, 58, 183, 0.2), rgba(103, 58, 183, 0.3));
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+      }
+      20% {
+        transform: scale(1.4);
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.4));
+        box-shadow: 
+          0 0 30px rgba(76, 175, 80, 0.7),
+          0 0 60px rgba(76, 175, 80, 0.4);
+      }
+      50% {
+        transform: scale(1.3);
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.4), rgba(76, 175, 80, 0.5));
+        box-shadow: 
+          0 0 40px rgba(76, 175, 80, 0.8),
+          0 0 80px rgba(76, 175, 80, 0.5),
+          0 0 0 10px rgba(76, 175, 80, 0.3);
+      }
+      100% {
+        transform: scale(1.1);
+        background: rgba(0, 0, 0, 0.08);
+        box-shadow: none;
+      }
+    }
+    
+    @keyframes successBounce {
+      0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+      }
+      40% {
+        transform: translateY(-8px);
+      }
+      60% {
+        transform: translateY(-4px);
       }
     }
   `
@@ -241,9 +420,10 @@ export class CircleDayComponent {
   @Output() onFoodDrop = new EventEmitter<CdkDragDrop<any>>();
   
   isDragOver = false;
+  showSuccessAnimation = false;
   
   getDayLabel(): string {
-    return new Date(this.date).toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
+    return new Date(this.date).toLocaleDateString('en-US', { weekday: 'narrow' });
   }
   
   selectDay(): void {
@@ -251,7 +431,15 @@ export class CircleDayComponent {
   }
   
   onDrop(event: CdkDragDrop<any>): void {
-    this.isDragOver = false; // Reset the drop-target style
+    console.log('Circle day drop:', event);
+    this.isDragOver = false;
+    
+    // Trigger success animation
+    this.showSuccessAnimation = true;
+    setTimeout(() => {
+      this.showSuccessAnimation = false;
+    }, 800);
+    
     this.onFoodDrop.emit(event);
   }
   

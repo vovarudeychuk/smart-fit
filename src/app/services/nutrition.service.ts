@@ -249,6 +249,39 @@ export class NutritionService {
     });
   }
 
+  // Add food item to a specific date (fixes move/copy operations)
+  addFoodItemToSpecificDate(foodItem: FoodItem, targetDate: Date): void {
+    const dateStr = this.formatDate(targetDate);
+    
+    // Check if the target date is in the current week
+    const currentWeekData = this.weeklyNutrition();
+    const targetDayIndex = currentWeekData.findIndex(day => 
+      this.isSameDay(new Date(day.date), targetDate)
+    );
+    
+    if (targetDayIndex !== -1) {
+      // Target date is in current week, update locally
+      const updatedNutrition = [...currentWeekData];
+      updatedNutrition[targetDayIndex] = {
+        ...updatedNutrition[targetDayIndex],
+        foodItems: [...updatedNutrition[targetDayIndex].foodItems, foodItem],
+        totalCalories: updatedNutrition[targetDayIndex].totalCalories + foodItem.calories,
+        totalProtein: updatedNutrition[targetDayIndex].totalProtein + foodItem.protein,
+        totalCarbs: updatedNutrition[targetDayIndex].totalCarbs + foodItem.carbs,
+        totalFat: updatedNutrition[targetDayIndex].totalFat + foodItem.fat
+      };
+      this.weeklyNutrition.set(updatedNutrition);
+    }
+    
+    // Always send to server regardless of whether it's in current week
+    this.firebaseDataService.addFoodToDay(dateStr, foodItem).then(response => {
+      console.log('Food item added to specific date on server:', response);
+    }).catch(error => {
+      console.error('Failed to add food to specific date on server:', error);
+      // TODO: Implement rollback logic if target date was in current week
+    });
+  }
+
   // searchFoods (synchronous) removed
 
   searchFoodsAsync(query: string): Observable<FoodItem[]> {
@@ -512,6 +545,52 @@ export class NutritionService {
     }).catch(error => {
       console.error('Failed to move food on server:', error);
       // TODO: Implement rollback for UI
+    });
+  }
+
+  // Move food item from source date to target date (fixes move/copy operations)
+  moveFoodItemToSpecificDate(foodItemId: string, sourceDate: Date, targetDate: Date, foodItem: FoodItem): void {
+    const sourceDateStr = this.formatDate(sourceDate);
+    const targetDateStr = this.formatDate(targetDate);
+    
+    // Check if source and target dates are in the current week
+    const currentWeekData = this.weeklyNutrition();
+    const sourceDayIndex = currentWeekData.findIndex(day => 
+      this.isSameDay(new Date(day.date), sourceDate)
+    );
+    const targetDayIndex = currentWeekData.findIndex(day => 
+      this.isSameDay(new Date(day.date), targetDate)
+    );
+    
+    // Update local state if dates are in current week
+    if (sourceDayIndex !== -1 || targetDayIndex !== -1) {
+      const updatedNutrition = [...currentWeekData];
+      
+      // Remove from source day if in current week
+      if (sourceDayIndex !== -1) {
+        const updatedSourceDay = { ...updatedNutrition[sourceDayIndex] };
+        updatedSourceDay.foodItems = updatedSourceDay.foodItems.filter(item => item.id !== foodItemId);
+        this.calculateDayTotals(updatedSourceDay);
+        updatedNutrition[sourceDayIndex] = updatedSourceDay;
+      }
+      
+      // Add to target day if in current week
+      if (targetDayIndex !== -1) {
+        const updatedTargetDay = { ...updatedNutrition[targetDayIndex] };
+        updatedTargetDay.foodItems = [...updatedTargetDay.foodItems, foodItem];
+        this.calculateDayTotals(updatedTargetDay);
+        updatedNutrition[targetDayIndex] = updatedTargetDay;
+      }
+      
+      this.weeklyNutrition.set(updatedNutrition);
+    }
+    
+    // Always send to server
+    this.firebaseDataService.moveFoodBetweenDays(sourceDateStr, targetDateStr, foodItemId, foodItem).then(() => {
+      console.log('Food item moved between specific dates on server');
+    }).catch(error => {
+      console.error('Failed to move food between specific dates on server:', error);
+      // TODO: Implement rollback logic if dates were in current week
     });
   }
 

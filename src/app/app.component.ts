@@ -13,6 +13,7 @@ import { AuthService } from './services/auth.service';
 import { FoodSearchDialogComponent } from './components/shared/dialogs/food-search-dialog/food-search-dialog.component';
 import { FoodQuantityDialogComponent, FoodMoveCopyDialogComponent } from './components/shared/dialogs';
 import { NutritionService } from './services/nutrition.service';
+import { ConsoleHelpersService } from './services/console-helpers.service';
 
 @Component({
   selector: 'app-root',
@@ -66,6 +67,10 @@ import { NutritionService } from './services/nutrition.service';
             <button mat-menu-item routerLink="/profile">
               <mat-icon>person</mat-icon>
               <span>Profile</span>
+            </button>
+            <button mat-menu-item routerLink="/mock-data">
+              <mat-icon>build</mat-icon>
+              <span>Mock Data</span>
             </button>
             <button mat-menu-item (click)="logout()">
               <mat-icon>exit_to_app</mat-icon>
@@ -227,6 +232,7 @@ export class AppComponent implements OnInit {
   dialog = inject(MatDialog);
   nutritionService = inject(NutritionService);
   router = inject(Router);
+  consoleHelpersService = inject(ConsoleHelpersService);
   
   ngOnInit(): void {
     // The auth state is now managed reactively by AuthService using Firebase.

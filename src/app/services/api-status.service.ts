@@ -1,6 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { catchError, map, of, tap, timer } from 'rxjs';
+import { catchError, map, of, tap, timer, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -20,6 +20,9 @@ export class ApiStatusService {
   // Track previous status to avoid duplicate notifications
   private previousStatus: 'connected' | 'disconnected' | 'checking' = 'checking';
   
+  // Track if we've shown the initial disconnected notification
+  private hasShownInitialDisconnectedNotification = false;
+  
   constructor() {
     // Check API status on startup
     this.checkApiStatus();
@@ -34,14 +37,28 @@ export class ApiStatusService {
     
     this.http.get(`${environment.apiUrl}/nutrition/health`)
       .pipe(
+        timeout(5000), // 5 second timeout
         map(() => true),
-        catchError(() => of(false)),
+        catchError((error) => {
+          console.log('API health check failed:', error.message);
+          return of(false);
+        }),
         tap(isConnected => {
           const newStatus = isConnected ? 'connected' : 'disconnected';
           
-          // Only show a notification when transitioning from connected/checking to disconnected
-          if (newStatus === 'disconnected' && this.previousStatus !== 'disconnected') {
-            this.showDisconnectedNotification();
+          // Show notification based on status transitions
+          if (newStatus === 'disconnected') {
+            if (this.previousStatus === 'connected') {
+              // API went from connected to disconnected
+              this.showDisconnectedNotification('API connection lost - Using mock data');
+            } else if (this.previousStatus === 'checking' && !this.hasShownInitialDisconnectedNotification) {
+              // Initial check failed
+              this.showDisconnectedNotification('Backend API not available - Using mock data', true);
+              this.hasShownInitialDisconnectedNotification = true;
+            }
+          } else if (newStatus === 'connected' && this.previousStatus === 'disconnected') {
+            // API reconnected
+            this.showConnectedNotification();
           }
           
           // Update status and previous status
@@ -63,12 +80,22 @@ export class ApiStatusService {
   }
   
   // Show a notification when API is disconnected
-  private showDisconnectedNotification() {
-    this.snackBar.open('API disconnected - Using local data', 'Dismiss', {
-      duration: 7000, // Show for longer (7 seconds)
+  private showDisconnectedNotification(message: string, isInitial: boolean = false) {
+    this.snackBar.open(message, 'Dismiss', {
+      duration: isInitial ? 10000 : 7000, // Show longer for initial disconnection
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
       panelClass: ['warning-snackbar']
+    });
+  }
+  
+  // Show a notification when API reconnects
+  private showConnectedNotification() {
+    this.snackBar.open('API connection restored - Using live data', 'Dismiss', {
+      duration: 5000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+      panelClass: ['success-snackbar']
     });
   }
 }

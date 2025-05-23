@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, EventEmitter } from '@angular/core';
+import { Injectable, inject, signal, EventEmitter, Injector, runInInjectionContext } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, of } from 'rxjs'; // Removed throwError, catchError, map, tap
 import {
@@ -28,6 +28,7 @@ export interface User {
 export class AuthService {
   private auth = inject(Auth);
   private router = inject(Router);
+  private injector = inject(Injector);
   // Removed http, baseUrl, tokenKey, userKey
 
   // State signals, initialized by authState subscription
@@ -37,21 +38,24 @@ export class AuthService {
   userChanged = new EventEmitter<User | null>();
 
   constructor() {
-    authState(this.auth).subscribe((firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        const user: User = { // Map Firebase user to local User interface
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-        };
-        this.currentUser.set(user);
-        this.isAuthenticated.set(true);
-        this.userChanged.emit(user);
-      } else {
-        this.currentUser.set(null);
-        this.isAuthenticated.set(false);
-        this.userChanged.emit(null);
-      }
+    // Use runInInjectionContext to ensure proper injection context
+    runInInjectionContext(this.injector, () => {
+      authState(this.auth).subscribe((firebaseUser: FirebaseUser | null) => {
+        if (firebaseUser) {
+          const user: User = { // Map Firebase user to local User interface
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+          };
+          this.currentUser.set(user);
+          this.isAuthenticated.set(true);
+          this.userChanged.emit(user);
+        } else {
+          this.currentUser.set(null);
+          this.isAuthenticated.set(false);
+          this.userChanged.emit(null);
+        }
+      });
     });
   }
 

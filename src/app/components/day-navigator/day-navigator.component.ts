@@ -397,18 +397,21 @@ export class DayNavigatorComponent implements OnInit {
             // When dialog closes, add the food if user confirmed
             dialogRef.afterClosed().subscribe(result => {
               if (result) {
-                // If it's a move operation, remove from the original day
                 if (action === 'move') {
-                  this.nutritionService.deleteFoodItem(foodItem.id?.toString() || ''); // Removed _id access
+                  // Use the new method to move food between specific dates
+                  this.nutritionService.moveFoodItemToSpecificDate(
+                    foodItem.id?.toString() || '', 
+                    new Date(currentDate), 
+                    targetDate, 
+                    result.food
+                  );
+                } else if (action === 'copy') {
+                  // For copy, just add to the target date
+                  this.nutritionService.addFoodItemToSpecificDate(result.food, targetDate);
                 }
                 
-                // Navigate to the target date
+                // Navigate to the target date to show the result
                 this.nutritionService.navigateToWeekContaining(targetDate);
-                
-                // Wait for navigation to complete before adding
-                setTimeout(() => {
-                  this.nutritionService.addFoodItem(result.food);
-                }, 150);
               }
             });
           }

@@ -4,6 +4,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { NutritionService } from '../../services/nutrition.service';
 import { FoodQuantityDialogComponent, ConfirmDialogComponent, FoodMoveCopyDialogComponent } from '../shared/dialogs';
 import { FoodItem } from '../../models/food-item.model';
@@ -28,9 +29,10 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
           id="food-list" 
           [cdkDropListData]="currentDay().foodItems" 
           [cdkDropListConnectedTo]="getDropListIds()"
-          (cdkDropListDropped)="drop($event)">
+          (cdkDropListDropped)="drop($event)"
+          [@listAnimation]="currentDay().foodItems.length">
           @for (food of currentDay().foodItems; track food.id + '-' + $index) {
-            <mat-list-item cdkDrag [cdkDragData]="food">
+            <mat-list-item cdkDrag [cdkDragData]="food" [@itemHover]>
               <div class="food-item-container">
                 <div class="food-item-left">
                   <div class="drag-handle" cdkDragHandle>
@@ -371,27 +373,167 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
       }
     }
     
-    /* Drag and drop styling */
+    /* Enhanced Drag and Drop Animations */
     .cdk-drag-preview {
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-      border-radius: 4px;
-      background-color: white;
-      padding: 8px 16px;
+      box-shadow: 
+        0 8px 25px rgba(103, 58, 183, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(103, 58, 183, 0.1);
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+      padding: 12px 16px;
+      transform: scale(1.05) rotate(2deg);
+      transition: all 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+      border: 2px solid rgba(103, 58, 183, 0.2);
+      backdrop-filter: blur(8px);
+      
+      /* Pulsing glow effect */
+      animation: dragGlow 2s ease-in-out infinite alternate;
+      
+      .food-item-container {
+        transform: none !important;
+      }
+    }
+    
+    @keyframes dragGlow {
+      0% {
+        box-shadow: 
+          0 8px 25px rgba(103, 58, 183, 0.3),
+          0 4px 12px rgba(0, 0, 0, 0.2),
+          0 0 0 1px rgba(103, 58, 183, 0.1);
+      }
+      100% {
+        box-shadow: 
+          0 12px 35px rgba(103, 58, 183, 0.4),
+          0 6px 16px rgba(0, 0, 0, 0.3),
+          0 0 0 2px rgba(103, 58, 183, 0.3);
+      }
     }
 
-    /* Add drag handle cue */
+    /* Placeholder with smooth fade */
     .cdk-drag-placeholder {
       opacity: 0;
+      transform: scale(0.9);
+      transition: all 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+      background: linear-gradient(90deg, 
+        rgba(103, 58, 183, 0.1) 0%, 
+        rgba(103, 58, 183, 0.05) 50%, 
+        rgba(103, 58, 183, 0.1) 100%);
+      border-radius: 8px;
+      border: 2px dashed rgba(103, 58, 183, 0.3);
     }
 
+    /* Smooth item animations during drag */
     .cdk-drag-animating {
-      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+      transition: transform 400ms cubic-bezier(0.25, 0.8, 0.25, 1);
     }
 
+    /* Enhanced list animations when dragging */
     .mat-list.cdk-drop-list-dragging .mat-list-item:not(.cdk-drag-placeholder) {
-      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+      transition: transform 300ms cubic-bezier(0.25, 0.8, 0.25, 1);
     }
-  `
+    
+    .mat-list.cdk-drop-list-dragging .mat-list-item:not(.cdk-drag-placeholder):hover {
+      transform: translateX(4px);
+      background-color: rgba(103, 58, 183, 0.02);
+    }
+
+    /* Drag handle enhanced animation */
+    .drag-handle {
+      transition: all 250ms cubic-bezier(0.4, 0.0, 0.2, 1);
+      
+      &:hover {
+        color: rgba(103, 58, 183, 0.8) !important;
+        transform: scale(1.1);
+      }
+    }
+    
+    /* Food item hover effect during drag state */
+    .cdk-drop-list-dragging .food-item-container {
+      transition: all 250ms cubic-bezier(0.4, 0.0, 0.2, 1);
+      
+      &:hover {
+        background-color: rgba(103, 58, 183, 0.03);
+        border-radius: 8px;
+        transform: translateY(-1px);
+      }
+    }
+    
+    /* Success animation for dropped items */
+    .food-item-container.drop-success {
+      animation: dropSuccess 600ms cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    
+    @keyframes dropSuccess {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.02);
+        box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+        background-color: rgba(76, 175, 80, 0.1);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    
+    /* Drag starting animation */
+    .cdk-drag-dragging {
+      .food-item-container {
+        animation: dragStart 200ms cubic-bezier(0.25, 0.8, 0.25, 1);
+      }
+    }
+    
+    @keyframes dragStart {
+      0% {
+        transform: scale(1);
+      }
+      100% {
+        transform: scale(1.02);
+      }
+    }
+    
+    /* List items scale slightly when not being dragged but list is in drag state */
+    .cdk-drop-list-dragging .mat-list-item:not(.cdk-drag-dragging) {
+      transform: scale(0.98);
+      opacity: 0.7;
+      transition: all 250ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+  `,
+  animations: [
+    trigger('listAnimation', [
+      transition('* <=> *', [
+        query(':enter', [
+          style({ opacity: 0, transform: 'translateY(-20px) scale(0.9)' }),
+          stagger(50, [
+            animate('300ms cubic-bezier(0.25, 0.8, 0.25, 1)', 
+              style({ opacity: 1, transform: 'translateY(0) scale(1)' }))
+          ])
+        ], { optional: true }),
+        query(':leave', [
+          animate('200ms cubic-bezier(0.4, 0.0, 0.2, 1)', 
+            style({ opacity: 0, transform: 'translateX(-100px) scale(0.8)' }))
+        ], { optional: true })
+      ])
+    ]),
+    trigger('itemHover', [
+      transition(':enter', [
+        style({ transform: 'scale(1)' }),
+        animate('150ms ease-out', style({ transform: 'scale(1.02)' }))
+      ]),
+      transition(':leave', [
+        animate('150ms ease-in', style({ transform: 'scale(1)' }))
+      ])
+    ]),
+    trigger('successPulse', [
+      transition('void => *', [
+        style({ transform: 'scale(1)', backgroundColor: 'transparent' }),
+        animate('400ms ease-out', style({ transform: 'scale(1.05)', backgroundColor: 'rgba(76, 175, 80, 0.1)' })),
+        animate('200ms ease-in', style({ transform: 'scale(1)', backgroundColor: 'transparent' }))
+      ])
+    ])
+  ]
 })
 export class FoodListComponent {
   private nutritionService = inject(NutritionService);
@@ -469,20 +611,20 @@ export class FoodListComponent {
           
           moveOrCopyDialogRef.afterClosed().subscribe(action => {
             if (action === 'move') {
-              // Move operation: delete from current day and add to new day
+              // Move operation: use the new method to move between specific dates
               console.log('Food list - User chose to move the food');
-              this.nutritionService.deleteFoodItem(String(foodId));
+              this.nutritionService.moveFoodItemToSpecificDate(
+                String(foodId),
+                new Date(currentDate),
+                new Date(result.targetDate),
+                result.food
+              );
               
-              // Navigate to the new date and add the updated food
+              // Navigate to the target date to show the result
               this.nutritionService.navigateToWeekContaining(result.targetDate);
-              
-              // Wait for navigation to complete before adding
-              setTimeout(() => {
-                this.nutritionService.addFoodItem(result.food);
-              }, 150);
             } 
             else if (action === 'copy') {
-              // Copy operation: keep in current day and add to new day
+              // Copy operation: update current and add to target date
               console.log('Food list - User chose to copy the food');
               
               // First update the food in the current day
@@ -494,13 +636,11 @@ export class FoodListComponent {
                 id: Date.now().toString() // New unique ID for the copy (string)
               };
               
-              // Navigate to the target date
-              this.nutritionService.navigateToWeekContaining(result.targetDate);
+              // Add the copy to the target date
+              this.nutritionService.addFoodItemToSpecificDate(foodCopy, new Date(result.targetDate));
               
-              // Wait for navigation to complete before adding
-              setTimeout(() => {
-                this.nutritionService.addFoodItem(foodCopy);
-              }, 150);
+              // Navigate to the target date to show the result
+              this.nutritionService.navigateToWeekContaining(result.targetDate);
             }
             else {
               // Cancel operation: just update the food in the current day

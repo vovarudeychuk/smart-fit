@@ -134,3 +134,18 @@ h1, h2, h3, h4, h5, h6, p, span, div {
     color: white;
   }
 }
+
+// Custom styles for success snackbar
+.success-snackbar {
+  --mdc-snackbar-container-color: #4caf50 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+  
+  .mat-mdc-button {
+    color: white !important;
+  }
+  
+  .mdc-snackbar__label {
+    font-weight: 500;
+    color: white;
+  }
+}

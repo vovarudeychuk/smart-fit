@@ -135,13 +135,11 @@ export class FoodSearchComponent {
               // since it hasn't been added to any day yet
               console.log(`Food search - User chose to ${action} the food`);
               
-              // Navigate to the selected date
-              this.nutritionService.navigateToWeekContaining(result.targetDate);
+              // Add to the specific target date
+              this.nutritionService.addFoodItemToSpecificDate(result.food, new Date(result.targetDate));
               
-              // Wait for navigation to complete before adding
-              setTimeout(() => {
-                this.nutritionService.addFoodItem(result.food);
-              }, 150);
+              // Navigate to the target date to show the result
+              this.nutritionService.navigateToWeekContaining(result.targetDate);
             }
             // If canceled, do nothing
           });

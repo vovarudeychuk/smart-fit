@@ -1,59 +1,60 @@
 # SmartFit
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.1.
+This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 19.0.1.
 
-## Development server
+## Development Server
 
-To start a local development server, run:
+Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
 
-```bash
-ng serve
-```
+## Backend API
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+This application is designed to work with a NestJS backend API running on `http://localhost:3000`. 
 
-## Code scaffolding
+### Running with Backend API
+1. Start your backend API server on port 3000
+2. Run `ng serve` to start the Angular development server
+3. The app will use live data from your API
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Running without Backend API (Mock Data Mode)
+If you don't have the backend API running, the application will automatically detect this and fall back to using mock data. You'll see a notification indicating "Backend API not available - Using mock data".
 
-```bash
-ng generate component component-name
-```
+This allows you to develop and test the frontend without needing the backend running.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Firebase Configuration
 
-```bash
-ng generate --help
-```
+The app uses Firebase for authentication and data storage. Make sure your Firebase configuration in `src/environments/environment.ts` is properly set up.
 
-## Building
+## Code Scaffolding
 
-To build the project run:
+Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
 
-```bash
-ng build
-```
+## Build
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
 
-## Running unit tests
+## Running Unit Tests
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
 
-```bash
-ng test
-```
+## Running End-to-End Tests
 
-## Running end-to-end tests
+Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
 
-For end-to-end (e2e) testing, run:
+## Troubleshooting
 
-```bash
-ng e2e
-```
+### CORS Issues
+If you see CORS errors in the console, it usually means:
+1. The backend API is not running on port 3000
+2. The backend API doesn't have CORS properly configured
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+The app will automatically fall back to mock data in these cases.
 
-## Additional Resources
+### Firebase Authentication Issues
+If you see "auth/configuration-not-found" errors:
+1. Check that your Firebase config in `src/environments/environment.ts` is correct
+2. Ensure your Firebase project has Authentication enabled
+3. Verify the Firebase project ID and API keys are valid
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Further Help
+
+To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
