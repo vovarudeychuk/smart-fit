@@ -31,18 +31,23 @@ export class AuthService {
   private injector = inject(Injector);
   // Removed http, baseUrl, tokenKey, userKey
 
-  // State signals, initialized by authState subscription
+  // State signals
   isAuthenticated = signal<boolean>(false);
   currentUser = signal<User | null>(null);
+  private authReady = signal<boolean>(false);
 
   userChanged = new EventEmitter<User | null>();
 
   constructor() {
+    console.log('AuthService: Initializing...');
+    
     // Use runInInjectionContext to ensure proper injection context
     runInInjectionContext(this.injector, () => {
       authState(this.auth).subscribe((firebaseUser: FirebaseUser | null) => {
+        console.log('AuthService: Auth state changed:', firebaseUser ? 'User logged in' : 'User logged out');
+        
         if (firebaseUser) {
-          const user: User = { // Map Firebase user to local User interface
+          const user: User = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
@@ -50,10 +55,18 @@ export class AuthService {
           this.currentUser.set(user);
           this.isAuthenticated.set(true);
           this.userChanged.emit(user);
+          console.log('AuthService: User authenticated:', user.email);
         } else {
           this.currentUser.set(null);
           this.isAuthenticated.set(false);
           this.userChanged.emit(null);
+          console.log('AuthService: User not authenticated');
+        }
+        
+        // Mark auth as ready after first update
+        if (!this.authReady()) {
+          this.authReady.set(true);
+          console.log('AuthService: Auth state ready');
         }
       });
     });
@@ -61,44 +74,90 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<UserCredential> {
     try {
+      console.log('AuthService: Attempting login for:', email);
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
-      // authState will handle updating signals
+      console.log('AuthService: Login successful');
       return userCredential;
     } catch (error: any) {
-      console.error('Login failed:', error);
-      // Map Firebase errors to user-friendly messages or rethrow
+      console.error('AuthService: Login failed:', error);
       throw new Error(this.mapFirebaseAuthError(error));
     }
   }
 
   async register(userData: { email: string, password: string, displayName?: string }): Promise<UserCredential> {
     try {
+      console.log('AuthService: Attempting registration for:', userData.email);
       const userCredential = await createUserWithEmailAndPassword(this.auth, userData.email, userData.password);
       if (userData.displayName && userCredential.user) {
         await updateProfile(userCredential.user, { displayName: userData.displayName });
-        // Update the local signal if needed, though authState should eventually reflect this
         const currentUser = this.currentUser();
         if (currentUser) {
           this.currentUser.set({ ...currentUser, displayName: userData.displayName });
         }
       }
-      // authState will handle updating signals for new user creation
+      console.log('AuthService: Registration successful');
       return userCredential;
     } catch (error: any) {
-      console.error('Registration failed:', error);
+      console.error('AuthService: Registration failed:', error);
       throw new Error(this.mapFirebaseAuthError(error));
     }
   }
 
   async logout(): Promise<void> {
     try {
+      console.log('AuthService: Attempting logout');
       await signOut(this.auth);
-      // authState will set currentUser to null and isAuthenticated to false
-      this.router.navigate(['/login']);
+      console.log('AuthService: Logout successful');
     } catch (error: any) {
-      console.error('Logout failed:', error);
+      console.error('AuthService: Logout failed:', error);
       throw new Error(this.mapFirebaseAuthError(error));
     }
+  }
+
+  // Simplified method to wait for auth to be ready
+  waitForAuthReady(): Promise<boolean> {
+    if (this.authReady()) {
+      console.log('AuthService: Auth already ready, returning current state:', this.isAuthenticated());
+      return Promise.resolve(this.isAuthenticated());
+    }
+    
+    console.log('AuthService: Waiting for auth to be ready...');
+    return new Promise((resolve) => {
+      const subscription = authState(this.auth).subscribe((user) => {
+        console.log('AuthService: Auth ready, user:', user ? 'authenticated' : 'not authenticated');
+        subscription.unsubscribe();
+        resolve(!!user);
+      });
+    });
+  }
+
+  // Method to wait for the next auth state change (use after login/register)
+  waitForNextAuthUpdate(): Promise<boolean> {
+    console.log('AuthService: Waiting for next auth state update...');
+    return new Promise((resolve) => {
+      const subscription = authState(this.auth).subscribe((user) => {
+        console.log('AuthService: Next auth update received, user:', user ? 'authenticated' : 'not authenticated');
+        subscription.unsubscribe();
+        resolve(!!user);
+      });
+    });
+  }
+
+  // Check if auth is ready
+  get isAuthReady(): boolean {
+    return this.authReady();
+  }
+
+  // Get current real-time auth state (for guards)
+  getCurrentAuthState(): Promise<boolean> {
+    console.log('AuthService: Getting current real-time auth state...');
+    return new Promise((resolve) => {
+      // Get the current auth state directly from Firebase
+      const currentUser = this.auth.currentUser;
+      const isAuth = !!currentUser;
+      console.log('AuthService: Current Firebase user:', currentUser ? 'authenticated' : 'not authenticated');
+      resolve(isAuth);
+    });
   }
 
   private mapFirebaseAuthError(error: any): string {

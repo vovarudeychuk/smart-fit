@@ -111,11 +111,26 @@ export class LoginComponent {
       this.isLoading.set(true);
       const { email, password } = this.loginForm.value;
       
+      console.log('LoginComponent: Starting login process for:', email);
+      
       try {
         await this.authService.login(email, password); // AuthService.login is now async
-        // Navigation will be handled by auth state listener or can be explicit here
-        this.router.navigate(['/dashboard']); 
+        
+        console.log('LoginComponent: Login successful, waiting for auth state update...');
+        
+        // Wait for auth state to update after login
+        const isAuthenticated = await this.authService.waitForNextAuthUpdate();
+        
+        console.log('LoginComponent: Auth state updated, authenticated:', isAuthenticated);
+        
+        if (isAuthenticated) {
+          console.log('LoginComponent: Navigating to dashboard');
+          this.router.navigate(['/dashboard']); 
+        } else {
+          console.error('LoginComponent: User not authenticated after login');
+        }
       } catch (error: any) { // Catch error from async function
+        console.error('LoginComponent: Login failed:', error);
         this.snackBar.open(error.message || 'Login failed. Please try again.', 'Close', { // error.message comes from mapFirebaseAuthError
           duration: 5000,
           horizontalPosition: 'center',

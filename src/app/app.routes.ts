@@ -6,30 +6,46 @@ import { RegisterComponent } from './components/register/register.component';
 import { ProfileComponent } from './components/profile/profile.component';
 import { Router } from '@angular/router';
 
-// Auth guard function
-export const authGuard = () => {
+// Auth guard function - using real-time auth state
+export const authGuard = async () => {
   const authService = inject(AuthService);
   const router = inject(Router);
   
-  if (authService.isAuthenticated()) {
+  console.log('AuthGuard: Checking authentication...');
+  
+  // Get current real-time auth state from Firebase
+  const isAuthenticated = await authService.getCurrentAuthState();
+  
+  console.log('AuthGuard: Real-time auth state:', isAuthenticated);
+  
+  if (isAuthenticated) {
+    console.log('AuthGuard: Access granted');
     return true;
   }
   
-  // Navigate to login page with a return url
+  console.log('AuthGuard: Access denied, redirecting to login');
   router.navigate(['/login']);
   return false;
 };
 
-// Guard to prevent authenticated users from accessing login/register
-export const nonAuthGuard = () => {
+// Guard to prevent authenticated users from accessing login/register - using real-time auth state
+export const nonAuthGuard = async () => {
   const authService = inject(AuthService);
   const router = inject(Router);
   
-  if (!authService.isAuthenticated()) {
+  console.log('NonAuthGuard: Checking authentication...');
+  
+  // Get current real-time auth state from Firebase
+  const isAuthenticated = await authService.getCurrentAuthState();
+  
+  console.log('NonAuthGuard: Real-time auth state:', isAuthenticated);
+  
+  if (!isAuthenticated) {
+    console.log('NonAuthGuard: Access granted (user not authenticated)');
     return true;
   }
   
-  // If already authenticated, redirect to dashboard
+  console.log('NonAuthGuard: User already authenticated, redirecting to dashboard');
   router.navigate(['/dashboard']);
   return false;
 };

@@ -1,5 +1,5 @@
 import { APP_INITIALIZER, ApplicationConfig, importProvidersFrom } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http'; // Removed withInterceptors
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -39,7 +39,7 @@ export const MY_DATE_FORMATS = {
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideRouter(routes),
+    provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(), // Removed withInterceptors([authInterceptor])
     provideAnimations(),
     importProvidersFrom(

@@ -145,8 +145,20 @@ export class RegisterComponent {
       
       try {
         await this.authService.register(userData); // AuthService.register is now async
-        // Navigation will be handled by auth state listener or can be explicit here
-        this.router.navigate(['/dashboard']);
+        
+        console.log('RegisterComponent: Registration successful, waiting for auth state update...');
+        
+        // Wait for auth state to update after registration
+        const isAuthenticated = await this.authService.waitForNextAuthUpdate();
+        
+        console.log('RegisterComponent: Auth state updated, authenticated:', isAuthenticated);
+        
+        if (isAuthenticated) {
+          console.log('RegisterComponent: Navigating to dashboard');
+          this.router.navigate(['/dashboard']);
+        } else {
+          console.error('RegisterComponent: User not authenticated after registration');
+        }
       } catch (error: any) { // Catch error from async function
         this.snackBar.open(error.message || 'Registration failed. Please try again.', 'Close', { // error.message comes from mapFirebaseAuthError
           duration: 5000,
